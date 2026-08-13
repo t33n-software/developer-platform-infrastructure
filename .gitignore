@@ -1,0 +1,25 @@
+.build/
+coverage/
+dist/
+
+# OpenTofu local state, plans and provider plugins
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+
+# Instance bindings never live in the core
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Provider lock files stay local for the foundation areas; only reference
+# stacks commit theirs
+*/.terraform.lock.hcl
