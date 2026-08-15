@@ -1,4 +1,4 @@
-module github.com/CyberT33N/developer-platform-infrastructure
+module github.com/t33n-software/developer-platform-infrastructure
 
 go 1.26
 

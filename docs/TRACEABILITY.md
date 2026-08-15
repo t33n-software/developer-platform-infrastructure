@@ -5,6 +5,7 @@
 | Ticket | Change | Status |
 |---|---|---|
 | DPI-1 | Establish the developer platform infrastructure core: the seven canonical foundation areas (organization, folders, identity-baseline, kms, logging, network, policy) as pinned OpenTofu roots, the OpenTofu engine convention, source-quality gates, CodeQL, dependency admission review, Dependabot, Lefthook, and importable Rulesets. | In progress |
+| DPI-2 | Migrate the module path to the `t33n-software` organization namespace; add the LF line-ending contract (`.gitattributes`) and the push-protections Ruleset source `00-push-protections.json` in the verified GitHub export format. | In progress |
 
 ## Scope boundaries
 
