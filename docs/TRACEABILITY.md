@@ -6,6 +6,7 @@
 |---|---|---|
 | DPI-1 | Establish the developer platform infrastructure core: the seven canonical foundation areas (organization, folders, identity-baseline, kms, logging, network, policy) as pinned OpenTofu roots, the OpenTofu engine convention, source-quality gates, CodeQL, dependency admission review, Dependabot, Lefthook, and importable Rulesets. | In progress |
 | DPI-2 | Migrate the module path to the `t33n-software` organization namespace; add the LF line-ending contract (`.gitattributes`) and the push-protections Ruleset source `00-push-protections.json` in the verified GitHub export format. | In progress |
+| DPI-3 | Align the Go 1.26.6 toolchain and source gates with the supply chain fortress contract: pinned `tools/` module with govulncheck, staticcheck, and Lefthook; fail-closed vulnerability analysis; Lefthook configuration validation and commit-msg hook; daily CI re-scan. | In progress |
 
 ## Scope boundaries
 
