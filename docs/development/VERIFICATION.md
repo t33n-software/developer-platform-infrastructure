@@ -52,10 +52,10 @@ Foundation-area lock files stay local; only reference stacks commit their
 Every executable Go package carries same-package whitebox tests for its
 invariants, branches, state transitions, errors, and cleanup paths.
 `internal/packaging/` complements them with same-package workflow contract
-tests that bind the CI surface, the Rulesets, the foundation-area layout, the
-exact OpenTofu pins and the core boundary (no concrete organization, tenant,
-project, identity, network, secret or registry bindings anywhere in the
-core).
+tests that bind the CI surface, the organization rule-set adoption guard, the
+foundation-area layout, the exact OpenTofu pins and the core boundary (no
+concrete organization, tenant, project, identity, network, secret or registry
+bindings anywhere in the core).
 
 ## CI gates
 
@@ -63,7 +63,9 @@ The `Quality gates (linux-amd64)` check runs the full source-level gate with
 the pinned Go and OpenTofu toolchains on every push and pull request to the
 shared lines and once per day on a schedule. The `Dependency admission review`
 check blocks unreviewed dependency changes. CodeQL code scanning runs with all
-alerts blocking once the shared-line Rulesets are imported.
+alerts blocking once the organization-level shared-line rule-sets are imported
+and active; the binding of this repository is documented in
+`docs/conventions/hosting-plattform/github/rule-sets/`.
 
 Lefthook provides the local `commit-msg` hook (governed commit-message
 validation) and the pre-push source-quality gate.
