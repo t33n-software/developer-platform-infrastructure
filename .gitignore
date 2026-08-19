@@ -23,3 +23,6 @@ override.tf.json
 # Provider lock files stay local for the foundation areas; only reference
 # stacks commit theirs
 */.terraform.lock.hcl
+
+# Nested hosting-platform areas keep their lock files local as well
+hosting-platforms/**/.terraform.lock.hcl

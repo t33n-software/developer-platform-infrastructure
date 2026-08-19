@@ -2,7 +2,8 @@
 
 `developer-platform-infrastructure` is the organization-agnostic core of the
 developer platform foundation modules: organization, folders, identity
-baseline, KMS, logging, network, and policy.
+baseline, KMS, logging, network, policy, and the hosting-platform projection
+area for GitHub organization custom properties.
 
 This repository never contains concrete organization, tenant, project,
 identity, network, secret, or registry bindings. Instances consume these
@@ -12,10 +13,12 @@ modules only through exact version pins.
 
 The core owns:
 
-- the seven canonical foundation areas `organization/`, `folders/`,
-  `identity-baseline/`, `kms/`, `logging/`, `network/` and `policy/`, each a
-  pinned OpenTofu root whose resources land with the first governed
-  infrastructure change for that area;
+- the seven canonical substrate foundation areas `organization/`,
+  `folders/`, `identity-baseline/`, `kms/`, `logging/`, `network/` and
+  `policy/`, plus the hosting-platform projection area
+  `hosting-platforms/github/custom-properties/`, each a pinned OpenTofu root
+  whose resources land with the first governed infrastructure change for that
+  area;
 - the source-quality gates under `cmd/` and the same-package workflow contract
   tests under `internal/packaging/`.
 
@@ -28,7 +31,7 @@ The core never contains:
 ## Toolchain
 
 Infrastructure as code is written in HCL and executed exclusively with
-OpenTofu. The engine and the Google provider are exactly pinned, provider GPG
+OpenTofu. The engine and every provider are exactly pinned, provider GPG
 validation is enforced, and reference stacks commit their
 `.terraform.lock.hcl`. The decision rationale lives in
 `docs/conventions/infrastructure-as-code/`.
@@ -57,7 +60,9 @@ disclosed vulnerabilities fail closed even without source changes.
 ## Repository layout
 
 - `organization/`, `folders/`, `identity-baseline/`, `kms/`, `logging/`,
-  `network/` and `policy/` are the seven foundation areas.
+  `network/` and `policy/` are the seven substrate foundation areas;
+  `hosting-platforms/github/custom-properties/` is the hosting-platform
+  projection area.
 - `cmd/` contains the build and coverage gates.
 - `internal/packaging/` contains the same-package workflow contract tests.
 - `docs/` contains architecture, conventions, and development

@@ -16,6 +16,18 @@ var foundationAreas = []string{
 	"logging",
 	"network",
 	"policy",
+	"hosting-platforms/github/custom-properties",
+}
+
+var foundationAreaProviderPins = map[string][]string{
+	"organization":      {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"folders":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"identity-baseline": {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"kms":               {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"logging":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"network":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"policy":            {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"hosting-platforms/github/custom-properties": {`source = "integrations/github"`, `version = "= 6.13.0"`},
 }
 
 func TestSourceWorkflowsEmitOnlyEstablishedSharedLineChecks(t *testing.T) {
@@ -255,11 +267,11 @@ func TestCoreContainsNoConcreteBindings(t *testing.T) {
 func TestOpenTofuPinsAreExactAndConsistent(t *testing.T) {
 	for _, area := range foundationAreas {
 		versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
-		for _, required := range []string{
-			`required_version = "= 1.12.5"`,
-			`source = "hashicorp/google"`,
-			`version = "= 7.44.0"`,
-		} {
+		providerPins, ok := foundationAreaProviderPins[area]
+		if !ok {
+			t.Fatalf("no provider pin contract registered for foundation area %q", area)
+		}
+		for _, required := range append([]string{`required_version = "= 1.12.5"`}, providerPins...) {
 			if !strings.Contains(versions, required) {
 				t.Fatalf("%s/versions.tf does not contain exact pin %q", area, required)
 			}
@@ -268,6 +280,42 @@ func TestOpenTofuPinsAreExactAndConsistent(t *testing.T) {
 			if strings.Contains(versions, forbidden) {
 				t.Fatalf("%s/versions.tf contains non-exact constraint %q", area, forbidden)
 			}
+		}
+	}
+}
+
+func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
+	area := filepath.Join("hosting-platforms", "github", "custom-properties")
+
+	main := readRepositoryFile(t, filepath.Join(area, "main.tf"))
+	for _, required := range []string{
+		"github_organization_custom_properties",
+		"github_repository_custom_property",
+		"for_each = var.definitions",
+		"values_editable_by",
+		"depends_on",
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not contain %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"quality-gates", "linux-only", `"full"`, "pending"} {
+		if strings.Contains(main, forbidden) {
+			t.Fatalf("%s/main.tf carries the concrete governance value %q; the projection module is value-free", area, forbidden)
+		}
+	}
+
+	variables := readRepositoryFile(t, filepath.Join(area, "variables.tf"))
+	for _, required := range []string{`variable "definitions"`, `variable "assignments"`} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not declare %q", area, required)
+		}
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "values_editable_by", "org_actors"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
 	}
 }
