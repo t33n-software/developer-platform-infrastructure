@@ -18,17 +18,22 @@ this substrate and drift from the canonical architecture.
 This repository is the organization-agnostic developer platform
 infrastructure core.
 
-1. It owns the seven canonical foundation areas, each a pinned OpenTofu root:
-   `organization/` (the organization node and its placement), `folders/`
-   (the folder hierarchy projects are placed under), `identity-baseline/`
-   (organization-level identity and access baseline), `kms/` (key rings and
-   key references, never key material), `logging/` (organization-level audit
-   log routing), `network/` (the shared network foundation) and `policy/`
-   (organization policy constraints). Resources land in an area with the
-   first governed infrastructure change for that area; the pinned contract
-   and the boundary documentation exist from the start.
+1. It owns the seven canonical substrate foundation areas, each a pinned
+   OpenTofu root: `organization/` (the organization node and its placement),
+   `folders/` (the folder hierarchy projects are placed under),
+   `identity-baseline/` (organization-level identity and access baseline),
+   `kms/` (key rings and key references, never key material), `logging/`
+   (organization-level audit log routing), `network/` (the shared network
+   foundation) and `policy/` (organization policy constraints) — plus the
+   hosting-platform projection area
+   `hosting-platforms/github/custom-properties/` (the GitHub organization
+   custom-property projection: value-free, with definitions decoded from the
+   pinned canonical artifacts and assignments supplied by the organization
+   instance). Resources land in an area with the first governed
+   infrastructure change for that area; the pinned contract and the boundary
+   documentation exist from the start.
 2. Infrastructure as code is written in HCL and executed exclusively with
-   OpenTofu. The engine and the Google provider are exactly pinned, provider
+   OpenTofu. The engine and every provider are exactly pinned, provider
    GPG validation is enforced everywhere, and every reference stack commits
    its `.terraform.lock.hcl`. The decision rationale lives in
    `docs/conventions/infrastructure-as-code/`.
