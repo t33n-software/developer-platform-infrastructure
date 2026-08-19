@@ -38,6 +38,15 @@ Dieses Projekt (`developer-platform-infrastructure`) verwendet die Familie
 | `branch-governance: main shared line (quality-gates=linux-only)` | linux-only |
 | `branch-governance: release shared lines (quality-gates=linux-only)` | linux-only |
 | `branch-governance: support shared lines (quality-gates=linux-only)` | linux-only |
+| `tag-governance: release version tags` | klassenlos (`~ALL`, Ziel `tag`, `refs/tags/v*`) |
+| `tag-governance: tag namespace floor` | klassenlos (`~ALL`, Ziel `tag`, `refs/tags/*` ohne `v*`) |
+
+Die beiden Tag-Rule-Sets sind klassenlos, weil die Tag-Governance
+klassenunabhängig ist: Der `v*`-Namespace ist an die Release-Automation-
+Identität gebunden (Erstellung, Verschiebung und Löschung nur über den
+Bypass-Actor), und der Namespace-Floor verhindert neue ungovernete
+Tag-Namespaces flächenweit (Erstellung und Verschiebung nur über die
+benannte Break-Glass-Rolle; Löschung bleibt zum Aufräumen möglich).
 
 ## Verwaltung
 
@@ -48,3 +57,7 @@ Dieses Projekt (`developer-platform-infrastructure`) verwendet die Familie
 - Änderungen an den Rule-Sets erfolgen ausschließlich im kanonischen
   Repository und werden danach auf Organisationsebene re-importiert
   (Organisation Settings → Repository → Rulesets).
+- Die Projektion der gepinnten Rule-Set-Artefakte in die Organisation läuft
+  über die reviewte IaC-Lane: Die Instanz pinnt Version und Digest des
+  kanonischen Bundles und projiziert die Payloads über die wertefreie
+  Foundation-Area `hosting-platforms/github/rulesets/` dieses Cores.

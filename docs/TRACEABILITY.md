@@ -8,6 +8,7 @@
 | DPI-2 | Migrate the module path to the `t33n-software` organization namespace; add the LF line-ending contract (`.gitattributes`) and the push-protections Ruleset source `00-push-protections.json` in the verified GitHub export format. | In progress |
 | DPI-3 | Align the Go 1.26.6 toolchain and source gates with the supply chain fortress contract: pinned `tools/` module with govulncheck, staticcheck, and Lefthook; fail-closed vulnerability analysis; Lefthook configuration validation and commit-msg hook; daily CI re-scan. | In progress |
 | DPI-5 | Add the hosting-platform projection area `hosting-platforms/github/custom-properties/`: a value-free OpenTofu module that projects the canonical GitHub organization custom-property definitions and the instance-bound repository assignments through the exactly pinned `integrations/github` provider, ordered before any class-partitioned ruleset activation. | In progress |
+| DPI-6 | Add the hosting-platform projection area `hosting-platforms/github/rulesets/`: a value-free OpenTofu module that projects the pinned canonical GitHub organization ruleset payloads (branch, tag, and push targets, including the classless tag-governance family) through the exactly pinned `integrations/github` provider, with bypass actor identities arriving exclusively from the organization instance bindings. | In progress |
 
 ## Scope boundaries
 

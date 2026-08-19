@@ -17,6 +17,7 @@ var foundationAreas = []string{
 	"network",
 	"policy",
 	"hosting-platforms/github/custom-properties",
+	"hosting-platforms/github/rulesets",
 }
 
 var foundationAreaProviderPins = map[string][]string{
@@ -28,6 +29,7 @@ var foundationAreaProviderPins = map[string][]string{
 	"network":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"policy":            {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"hosting-platforms/github/custom-properties": {`source = "integrations/github"`, `version = "= 6.13.0"`},
+	"hosting-platforms/github/rulesets":          {`source = "integrations/github"`, `version = "= 6.13.0"`},
 }
 
 func TestSourceWorkflowsEmitOnlyEstablishedSharedLineChecks(t *testing.T) {
@@ -314,6 +316,42 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
 	for _, required := range []string{"## Boundary", "values_editable_by", "org_actors"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
+		}
+	}
+}
+
+func TestRulesetsProjectionAreaIsValueFree(t *testing.T) {
+	area := filepath.Join("hosting-platforms", "github", "rulesets")
+
+	main := readRepositoryFile(t, filepath.Join(area, "main.tf"))
+	for _, required := range []string{
+		"github_organization_ruleset",
+		"for_each = var.rulesets",
+		"bypass_actors",
+		"conditions",
+		"ref_name",
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not contain %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"quality-gates", "linux-only", `"full"`, "pending", "refs/tags/", "refs/heads/"} {
+		if strings.Contains(main, forbidden) {
+			t.Fatalf("%s/main.tf carries the concrete governance value %q; the projection module is value-free", area, forbidden)
+		}
+	}
+
+	variables := readRepositoryFile(t, filepath.Join(area, "variables.tf"))
+	for _, required := range []string{`variable "rulesets"`} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not declare %q", area, required)
+		}
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "bypass", "evaluate"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
