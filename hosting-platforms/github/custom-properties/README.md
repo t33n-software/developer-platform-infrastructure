@@ -27,5 +27,5 @@ exactly pinned `integrations/github` provider.
 - Never contains credentials, tokens, organization names, live state, plans,
   or variable binding files; the provider authenticates through the applying
   lane's identity.
-- Creates no rulesets; ruleset artifacts are imported through their own
-  documented channel.
+- Creates no rulesets; organization ruleset payloads are projected through the
+  sibling `rulesets` area from the pinned canonical ruleset artifacts.

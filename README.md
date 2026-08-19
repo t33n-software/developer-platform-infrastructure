@@ -61,8 +61,9 @@ disclosed vulnerabilities fail closed even without source changes.
 
 - `organization/`, `folders/`, `identity-baseline/`, `kms/`, `logging/`,
   `network/` and `policy/` are the seven substrate foundation areas;
-  `hosting-platforms/github/custom-properties/` is the hosting-platform
-  projection area.
+  `hosting-platforms/github/custom-properties/` and
+  `hosting-platforms/github/rulesets/` are the hosting-platform projection
+  areas.
 - `cmd/` contains the build and coverage gates.
 - `internal/packaging/` contains the same-package workflow contract tests.
 - `docs/` contains architecture, conventions, and development
