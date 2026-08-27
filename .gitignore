@@ -1,9 +1,18 @@
-.build/
-coverage/
-dist/
+# Local build and test outputs.
+/.build/
+/dist/
+/coverage/
+/.cache/
+*.coverprofile
+*.test
+*.out
+*.cov
+
+# -- project additions below this line --
 
 # OpenTofu local state, plans and provider plugins
 **/.terraform/
+**/.build/
 *.tfstate
 *.tfstate.*
 *.tfplan
@@ -20,9 +29,7 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Provider lock files stay local for the foundation areas; only reference
-# stacks commit theirs
+# Provider lock files stay local for the foundation areas and the
+# hosting-platform projection areas
 */.terraform.lock.hcl
-
-# Nested hosting-platform areas keep their lock files local as well
 hosting-platforms/**/.terraform.lock.hcl
