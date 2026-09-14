@@ -20,6 +20,7 @@ var foundationAreas = []string{
 	"logging",
 	"network",
 	"policy",
+	"state-home",
 	"hosting-platforms/github/custom-properties",
 	"hosting-platforms/github/rulesets",
 }
@@ -32,6 +33,7 @@ var foundationAreaProviderPins = map[string][]string{
 	"logging":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"network":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"policy":            {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	"state-home":        {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"hosting-platforms/github/custom-properties": {`source = "integrations/github"`, `version = "= 6.13.0"`},
 	"hosting-platforms/github/rulesets":          {`source = "integrations/github"`, `version = "= 6.13.0"`},
 }
@@ -383,6 +385,82 @@ func TestOpenTofuPinsAreExactAndConsistent(t *testing.T) {
 			if strings.Contains(versions, forbidden) {
 				t.Fatalf("%s/versions.tf contains non-exact constraint %q", area, forbidden)
 			}
+		}
+	}
+}
+
+func TestStateHomeAreaBindsTheDualFortressBirthForm(t *testing.T) {
+	area := "state-home"
+
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
+		}
+	}
+	// The birth form: the root carries the encryption block but no backend
+	// block; the backend joins after the foundation bucket birth as a
+	// reviewed change, followed by the state migration.
+	if strings.Contains(versions, `backend "gcs"`) {
+		t.Fatalf("%s/versions.tf carries a backend block before the foundation bucket birth; the birth form carries none", area)
+	}
+
+	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
+	for _, required := range []string{
+		`resource "google_storage_bucket" "state_homes"`,
+		`for_each = var.state_homes`,
+		`uniform_bucket_level_access = true`,
+		`public_access_prevention = "enforced"`,
+		`versioning { enabled = true }`,
+		`encryption { default_kms_key_name = each.value.cmek_key_name }`,
+		`resource "google_storage_bucket_iam_member" "operators"`,
+		`role = "roles/storage.objectAdmin"`,
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not bind the state-home form %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{`lifecycle_rule`, `retention_policy`, `roles/storage.admin`} {
+		if strings.Contains(main, forbidden) {
+			t.Fatalf("%s/main.tf carries the forbidden form %q; a state bucket is the recovery root, never an archive, and the area grants exactly the object-admin role", area, forbidden)
+		}
+	}
+
+	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
+	for _, required := range []string{
+		`variable "state_encryption_key"`,
+		`variable "state_homes"`,
+		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
+		`home.cmek_key_name != var.state_encryption_key`,
+		`element(split("/", home.cmek_key_name), 3) == home.location`,
+		`length(var.state_homes) > 0`,
+		`length(distinct(`,
+		`length(home.operator_members) > 0`,
+	} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not bind the instance-binding form %q", area, required)
+		}
+	}
+	// The organization instance supplies every concrete value; the core
+	// never presets one.
+	if strings.Contains(variables, "default") {
+		t.Fatalf("%s/variables.tf carries a preset value; the organization instance supplies every concrete value", area)
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "dual fortress", "## Birth form", "migrate-state", "foundation"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
 	}
 }

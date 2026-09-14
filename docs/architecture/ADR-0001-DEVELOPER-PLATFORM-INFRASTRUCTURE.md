@@ -18,13 +18,16 @@ this substrate and drift from the canonical architecture.
 This repository is the organization-agnostic developer platform
 infrastructure core.
 
-1. It owns the seven canonical substrate foundation areas, each a pinned
+1. It owns the eight canonical substrate foundation areas, each a pinned
    OpenTofu root: `organization/` (the organization node and its placement),
    `folders/` (the folder hierarchy projects are placed under),
    `identity-baseline/` (organization-level identity and access baseline),
    `kms/` (key rings and key references, never key material), `logging/`
    (organization-level audit log routing), `network/` (the shared network
-   foundation) and `policy/` (organization policy constraints) — plus the
+   foundation), `policy/` (organization policy constraints) and
+   `state-home/` (the engine-state homes of the organization: the
+   foundation's own state home and one per trust zone, provisioned by the
+   foundation in the dual fortress birth form) — plus the
    hosting-platform projection area
    `hosting-platforms/github/custom-properties/` (the GitHub organization
    custom-property projection: value-free, with definitions decoded from the
