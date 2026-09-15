@@ -44,3 +44,21 @@ never by the zone's own roots and never by hand.
 - The backend block is deliberately absent at birth; it joins only after
   the foundation bucket exists, and from then on no local state exists
   anywhere.
+
+## Verification
+
+Every custom condition of this root is proven with concrete values before it
+may merge — the static gate layer (format check, initialization, validation)
+never evaluates a condition body, so the proof is behavioral:
+`variables.tofutest.hcl` carries the acceptance run of the valid state-home
+set and one rejection run per condition and per naming-rule clause, executed
+through `tofu test` in plan mode with refresh disabled; no run creates
+infrastructure. Because this root carries the encryption block, its
+initialization resolves the engine key, so the behavioral run executes in the
+governed execution window where the key is reachable; the concrete key
+reference is supplied through the instance-bound variable channel (a
+gitignored `*.tfvars`), never committed. The static evaluation-safety guard
+in the packaging contract (`TestCustomConditionsBindContainsToCollectionArguments`)
+is the always-on form: it binds fail-closed that every `contains` call in
+every HCL surface of the core resolves its first argument to a collection
+type.
