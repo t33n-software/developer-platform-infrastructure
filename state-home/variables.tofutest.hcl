@@ -324,3 +324,26 @@ run "rejects_a_malformed_operator_member" {
 
   expect_failures = [var.state_homes]
 }
+
+run "rejects_a_state_home_map_without_the_foundation_key" {
+  command = plan
+
+  plan_options {
+    refresh = false
+  }
+
+  variables {
+    state_homes = {
+      zone = {
+        project_id       = "test-zone-project"
+        bucket_name      = "test-zone-state"
+        location         = "europe-west1"
+        cmek_key_name    = "projects/test-zone-project/locations/europe-west1/keyRings/zone/cryptoKeys/zone-state-cmek"
+        operator_members = ["user:ops@example.com"]
+        labels           = { boundary = "zone" }
+      }
+    }
+  }
+
+  expect_failures = [var.state_homes]
+}

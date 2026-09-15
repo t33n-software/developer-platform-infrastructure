@@ -10,18 +10,23 @@ second, cryptographically separate key), and this root carries the
 client-side engine layer (AES-256-GCM through the organization key
 management, fail-closed enforced on state and plan alike).
 
-## Birth form
+## State backend
 
-This root is the only root of the organization that ever applies with local
-state, and only at the organization's birth: the declaration carries the
-encryption block but no backend block, so the birth apply runs on the local
-backend with the state encrypted from birth. Immediately after the
-foundation bucket exists, the backend block joins this root's declaration
-(a reviewed change) referencing the entry keyed exactly `foundation`, and
-the root migrates its own state into the bucket through the engine's
-backend migration (`tofu init -migrate-state`). Every zone state home is
-provisioned through this root's plan-gated apply after that migration —
-never by the zone's own roots and never by hand.
+This root's own state lives in the foundation state bucket: the `gcs`
+backend block references the state-home entry keyed exactly `foundation`,
+and the state-key grammar prefix identifies exactly this root
+(`state-home`) and nothing else. The bucket is provisioned through the
+organization birth path owned by the operating model: this root is the only
+root of the organization that ever applies with local state, and only at
+the organization's birth (the birth declaration carries the encryption
+block but no backend block, so the birth apply runs on the local backend
+with the state encrypted from birth); immediately after the foundation
+bucket exists, the backend block joins this root's declaration (a reviewed
+change), and the root migrates its own state into the bucket through the
+engine's backend migration (`tofu init -migrate-state`). From then on, no
+local state exists anywhere. Every zone state home is provisioned through
+this root's plan-gated apply — never by the zone's own roots and never by
+hand.
 
 ## Boundary
 
@@ -41,9 +46,9 @@ never by the zone's own roots and never by hand.
 - The bucket location of every state home is coupled to its CMEK key ring
   location (a hard platform rule), proven fail-closed by the variable
   validations.
-- The backend block is deliberately absent at birth; it joins only after
-  the foundation bucket exists, and from then on no local state exists
-  anywhere.
+- The backend block is present and final: this root's state lives in the
+  foundation state bucket; the only local state the organization ever holds
+  is this root's encrypted birth state before its backend migration.
 
 ## Verification
 
@@ -54,10 +59,12 @@ never evaluates a condition body, so the proof is behavioral:
 set and one rejection run per condition and per naming-rule clause, executed
 through `tofu test` in plan mode with refresh disabled; no run creates
 infrastructure. Because this root carries the encryption block, its
-initialization resolves the engine key, so the behavioral run executes in the
-governed execution window where the key is reachable; the concrete key
-reference is supplied through the instance-bound variable channel (a
-gitignored `*.tfvars`), never committed. The static evaluation-safety guard
+initialization resolves the engine key, and because it carries the backend
+block, its plan surface requires the initialized backend, so the behavioral
+run executes in the governed execution window where the key is reachable and
+the foundation bucket exists; the concrete key reference is supplied through
+the instance-bound variable channel (a gitignored `*.tfvars`), never
+committed. The static evaluation-safety guard
 in the packaging contract (`TestCustomConditionsBindContainsToCollectionArguments`)
 is the always-on form: it binds fail-closed that every `contains` call in
 every HCL surface of the core resolves its first argument to a collection

@@ -27,7 +27,7 @@ infrastructure core.
    foundation), `policy/` (organization policy constraints) and
    `state-home/` (the engine-state homes of the organization: the
    foundation's own state home and one per trust zone, provisioned by the
-   foundation in the dual fortress birth form) — plus the
+   foundation in the dual fortress form) — plus the
    hosting-platform projection area
    `hosting-platforms/github/custom-properties/` (the GitHub organization
    custom-property projection: value-free, with definitions decoded from the
