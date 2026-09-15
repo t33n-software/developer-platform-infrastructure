@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -642,6 +643,600 @@ func TestGoToolchainAndBuildToolingContract(t *testing.T) {
 	if !strings.Contains(traceability, "DPI-7") {
 		t.Fatal("TRACEABILITY.md does not contain DPI-7")
 	}
+}
+
+// TestCustomConditionsBindContainsToCollectionArguments is the static
+// evaluation-safety guard of the proven defect class: a contains call whose
+// first argument is a string errors only when a value is evaluated and passes
+// format, initialization and validation silently. The guard binds the class
+// fail-closed: every contains call in every HCL surface of the core must
+// resolve its first argument to a collection type (list, set or tuple) — a
+// string, a map, an unresolvable reference or an unknown form is a violation.
+func TestCustomConditionsBindContainsToCollectionArguments(t *testing.T) {
+	for _, path := range repositoryFiles(t, []string{".tf"}) {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("ReadFile(%q) error = %v", path, err)
+		}
+		content := string(raw)
+		code := hclCodeMask(content)
+		env := bindHCLEvaluationTypes(t, path, content, code)
+		for _, site := range containsCallSites(content, code) {
+			firstArgument := firstCallArgument(content, site)
+			if err := proveCollectionFirstArgument(firstArgument, env); err != nil {
+				t.Fatalf("%s: the contains call with first argument %q is not evaluation-safe: %v", path, firstArgument, err)
+			}
+		}
+	}
+}
+
+// hclEvaluationEnv carries the deterministic type evidence of one HCL root:
+// the declared variable types of the root directory and the for-binding
+// element types of the single file under analysis.
+type hclEvaluationEnv struct {
+	variables map[string]*hclType
+	forValues map[string]*hclType
+}
+
+// hclType is the minimal type model the evaluation-safety guard resolves
+// against: leaves, collection constructors and object attribute maps.
+type hclType struct {
+	kind  string
+	elem  *hclType
+	attrs map[string]*hclType
+}
+
+func (t *hclType) isContainsCollection() bool {
+	return t != nil && (t.kind == "list" || t.kind == "set" || t.kind == "tuple")
+}
+
+// hclCodeMask marks every byte of the content that is real HCL code; comments,
+// string interiors and heredoc bodies are masked out so structural scans never
+// match prose or literal text.
+func hclCodeMask(content string) []bool {
+	mask := make([]bool, len(content))
+	for i := range mask {
+		mask[i] = true
+	}
+	i := 0
+	for i < len(content) {
+		switch {
+		case strings.HasPrefix(content[i:], "/*"):
+			end := strings.Index(content[i+2:], "*/")
+			if end < 0 {
+				end = len(content) - i - 2
+			}
+			for j := i; j < i+2+end+2 && j < len(content); j++ {
+				mask[j] = false
+			}
+			i += 2 + end + 2
+		case strings.HasPrefix(content[i:], "//") || content[i] == '#':
+			end := strings.IndexByte(content[i:], '\n')
+			if end < 0 {
+				end = len(content) - i
+			}
+			for j := i; j < i+end; j++ {
+				mask[j] = false
+			}
+			i += end
+		case strings.HasPrefix(content[i:], "<<"):
+			heredocEnd := hclHeredocEnd(content, i)
+			for j := i; j < heredocEnd; j++ {
+				mask[j] = false
+			}
+			i = heredocEnd
+		case content[i] == '"':
+			end := i + 1
+			for end < len(content) {
+				if content[end] == '"' && content[end-1] != '\\' {
+					break
+				}
+				end++
+			}
+			if end >= len(content) {
+				end = len(content) - 1
+			}
+			for j := i + 1; j < end; j++ {
+				mask[j] = false
+			}
+			i = end + 1
+		default:
+			i++
+		}
+	}
+	return mask
+}
+
+// hclHeredocEnd returns the end offset of the heredoc starting at the given
+// offset of the opening marker.
+func hclHeredocEnd(content string, start int) int {
+	lineEnd := strings.IndexByte(content[start:], '\n')
+	if lineEnd < 0 {
+		return len(content)
+	}
+	marker := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(content[start:start+lineEnd], "<<"), "-"))
+	if marker == "" {
+		return start + lineEnd
+	}
+	rest := content[start+lineEnd:]
+	offset := 0
+	for offset < len(rest) {
+		next := strings.IndexByte(rest[offset:], '\n')
+		if next < 0 {
+			next = len(rest) - offset
+		}
+		line := strings.TrimSpace(rest[offset : offset+next])
+		offset += next + 1
+		if line == marker {
+			return start + lineEnd + offset
+		}
+	}
+	return len(content)
+}
+
+// bindHCLEvaluationTypes builds the type evidence of the root that owns the
+// given file: the declared variable types from every file of the root
+// directory plus the for-binding element types of the file itself.
+func bindHCLEvaluationTypes(t *testing.T, path string, content string, code []bool) hclEvaluationEnv {
+	t.Helper()
+	env := hclEvaluationEnv{variables: map[string]*hclType{}, forValues: map[string]*hclType{}}
+	root := filepath.Dir(path)
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatalf("ReadDir(%q) error = %v", root, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".tf" {
+			continue
+		}
+		sibling, err := os.ReadFile(filepath.Join(root, entry.Name()))
+		if err != nil {
+			t.Fatalf("ReadFile(%q) error = %v", entry.Name(), err)
+		}
+		for name, declared := range declaredVariableTypes(t, entry.Name(), string(sibling)) {
+			env.variables[name] = declared
+		}
+	}
+	for name, bound := range forBindingTypes(t, path, content, code, env) {
+		env.forValues[name] = bound
+	}
+	return env
+}
+
+// declaredVariableTypes extracts the declared type of every variable block of
+// one file; a variable without a decodable type is a guard failure, never a
+// silent pass.
+func declaredVariableTypes(t *testing.T, name string, content string) map[string]*hclType {
+	t.Helper()
+	code := hclCodeMask(content)
+	declared := map[string]*hclType{}
+	for _, site := range keywordSites(content, code, "variable") {
+		label, after := hclLabel(content, site+len("variable"))
+		if label == "" {
+			t.Fatalf("%s: a variable block without a readable label is not evaluation-safe", name)
+		}
+		body := blockBody(content, code, after)
+		typeExpression := typeExpressionOf(content, code, body)
+		if typeExpression == "" {
+			t.Fatalf("%s: the variable %q carries no decodable type declaration", name, label)
+		}
+		declared[label] = parseHCLType(typeExpression)
+	}
+	return declared
+}
+
+// forBindingTypes extracts the element types of every for-binding of one file
+// in textual order so inner bindings resolve against outer ones.
+func forBindingTypes(t *testing.T, path string, content string, code []bool, env hclEvaluationEnv) map[string]*hclType {
+	t.Helper()
+	bound := map[string]*hclType{}
+	for _, site := range keywordSites(content, code, "for") {
+		cursor := skipSpace(content, site+len("for"))
+		specEnd := cursor
+		for specEnd < len(content) && !strings.HasPrefix(content[specEnd:], " in ") {
+			specEnd++
+		}
+		if specEnd >= len(content) {
+			t.Fatalf("%s: a for-binding without an in clause is not evaluation-safe", path)
+		}
+		variableNames := strings.Split(strings.TrimSpace(content[cursor:specEnd]), ",")
+		collectionStart := skipSpace(content, specEnd+len(" in "))
+		collectionEnd := collectionStart
+		depth := 0
+		for collectionEnd < len(content) {
+			r := content[collectionEnd]
+			switch r {
+			case '(', '[', '{':
+				depth++
+			case ')', ']', '}':
+				depth--
+			case ':':
+				if depth == 0 {
+					goto collectionDone
+				}
+			}
+			collectionEnd++
+		}
+	collectionDone:
+		if collectionEnd >= len(content) {
+			t.Fatalf("%s: a for-binding without a body separator is not evaluation-safe", path)
+		}
+		collectionType := resolveHCLExpressionType(strings.TrimSpace(content[collectionStart:collectionEnd]), env, bound)
+		var valueType *hclType
+		switch {
+		case collectionType == nil:
+			valueType = nil
+		case collectionType.kind == "map" || collectionType.kind == "object":
+			valueType = collectionType.elem
+		case collectionType.kind == "list" || collectionType.kind == "set" || collectionType.kind == "tuple":
+			valueType = collectionType.elem
+		default:
+			valueType = nil
+		}
+		bindForValue := func(name, role string) {
+			name = strings.TrimSpace(name)
+			var roleType *hclType
+			if role == "key" {
+				roleType = &hclType{kind: "string"}
+			} else {
+				roleType = valueType
+			}
+			if existing, exists := bound[name]; exists {
+				if !sameHCLType(existing, roleType) {
+					t.Fatalf("%s: the for-binding %q is ambiguous within one file", path, name)
+				}
+				return
+			}
+			bound[name] = roleType
+		}
+		if len(variableNames) == 2 {
+			bindForValue(variableNames[0], "key")
+			bindForValue(variableNames[1], "value")
+		} else {
+			bindForValue(variableNames[0], "value")
+		}
+	}
+	return bound
+}
+
+// sameHCLType reports whether two resolved types are identical in kind,
+// element type and attribute set.
+func sameHCLType(a, b *hclType) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.kind != b.kind {
+		return false
+	}
+	if !sameHCLType(a.elem, b.elem) {
+		return false
+	}
+	if a.attrs == nil || b.attrs == nil {
+		return a.attrs == nil && b.attrs == nil
+	}
+	if len(a.attrs) != len(b.attrs) {
+		return false
+	}
+	for name, attr := range a.attrs {
+		other, ok := b.attrs[name]
+		if !ok || !sameHCLType(attr, other) {
+			return false
+		}
+	}
+	return true
+}
+
+// containsCallSites returns the offsets of every contains call in code
+// position; the identifier must stand alone.
+func containsCallSites(content string, code []bool) []int {
+	sites := []int{}
+	for i := 0; i+len("contains") <= len(content); i++ {
+		if !code[i] || !strings.HasPrefix(content[i:], "contains") {
+			continue
+		}
+		if i > 0 && isHCLIdentifierRune(content[i-1]) {
+			continue
+		}
+		after := skipSpace(content, i+len("contains"))
+		if after < len(content) && content[after] == '(' {
+			sites = append(sites, after)
+		}
+		i = after
+	}
+	return sites
+}
+
+// firstCallArgument extracts the first top-level argument of the call whose
+// opening parenthesis sits at the given offset.
+func firstCallArgument(content string, openParen int) string {
+	depth := 0
+	for i := openParen; i < len(content); i++ {
+		switch content[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return strings.TrimSpace(content[openParen+1 : i])
+			}
+		case ',':
+			if depth == 1 {
+				return strings.TrimSpace(content[openParen+1 : i])
+			}
+		}
+	}
+	return ""
+}
+
+// proveCollectionFirstArgument proves that the first argument of a contains
+// call resolves to a contains-compatible collection type; every other outcome
+// is a violation of the evaluation-safety guard.
+func proveCollectionFirstArgument(argument string, env hclEvaluationEnv) error {
+	if argument == "" {
+		return fmt.Errorf("the call carries no readable first argument")
+	}
+	if strings.HasPrefix(argument, "\"") {
+		return fmt.Errorf("the first argument is a string literal; contains requires a list, tuple or set")
+	}
+	if name, _, ok := strings.Cut(argument, "("); ok && collectionReturningFunctions[strings.TrimSpace(name)] {
+		return nil
+	}
+	resolved := resolveHCLExpressionType(argument, env, env.forValues)
+	if resolved == nil {
+		return fmt.Errorf("the first argument type is not resolvable; the guard is fail-closed")
+	}
+	if !resolved.isContainsCollection() {
+		return fmt.Errorf("the first argument resolves to %q; contains requires a list, tuple or set", resolved.kind)
+	}
+	return nil
+}
+
+// collectionReturningFunctions is the closed set of built-in calls whose
+// result is a contains-compatible collection.
+var collectionReturningFunctions = map[string]bool{
+	"compact": true, "concat": true, "distinct": true, "flatten": true,
+	"keys": true, "range": true, "reverse": true, "setintersection": true,
+	"setsubtract": true, "setunion": true, "slice": true, "sort": true,
+	"split": true, "tolist": true, "toset": true, "values": true,
+}
+
+// resolveHCLExpressionType resolves a reference expression — a variable
+// reference, a for-value reference or an attribute walk over one of them — to
+// its declared type; anything else is unresolvable.
+func resolveHCLExpressionType(expression string, env hclEvaluationEnv, forValues map[string]*hclType) *hclType {
+	segments := strings.Split(expression, ".")
+	for _, segment := range segments {
+		if segment == "" || !isHCLIdentifier(segment) {
+			return nil
+		}
+	}
+	var current *hclType
+	if segments[0] == "var" {
+		if len(segments) < 2 {
+			return nil
+		}
+		current = env.variables[segments[1]]
+		segments = segments[2:]
+	} else {
+		current = forValues[segments[0]]
+		segments = segments[1:]
+	}
+	for _, segment := range segments {
+		if current == nil || current.attrs == nil {
+			return nil
+		}
+		current = current.attrs[segment]
+	}
+	return current
+}
+
+// parseHCLType parses the declared type expression of a variable into the
+// guard's minimal type model.
+func parseHCLType(expression string) *hclType {
+	expression = strings.TrimSpace(expression)
+	switch expression {
+	case "string", "number", "bool", "any":
+		return &hclType{kind: expression}
+	}
+	for _, constructor := range []string{"list", "set", "map"} {
+		if strings.HasPrefix(expression, constructor+"(") && strings.HasSuffix(expression, ")") {
+			return &hclType{kind: constructor, elem: parseHCLType(expression[len(constructor)+1 : len(expression)-1])}
+		}
+	}
+	if strings.HasPrefix(expression, "tuple(") {
+		return &hclType{kind: "tuple"}
+	}
+	if strings.HasPrefix(expression, "object(") {
+		inner := strings.TrimSuffix(strings.TrimPrefix(expression, "object("), ")")
+		inner = strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(inner), "{"), "}"))
+		attrs := map[string]*hclType{}
+		for _, attribute := range splitTopLevelAttributes(inner) {
+			name, value, found := strings.Cut(attribute, "=")
+			if !found {
+				continue
+			}
+			attrs[strings.TrimSpace(name)] = parseHCLType(value)
+		}
+		return &hclType{kind: "object", attrs: attrs}
+	}
+	if strings.HasPrefix(expression, "optional(") && strings.HasSuffix(expression, ")") {
+		inner := expression[len("optional(") : len(expression)-1]
+		if comma := topLevelComma(inner); comma >= 0 {
+			inner = inner[:comma]
+		}
+		return parseHCLType(inner)
+	}
+	return &hclType{kind: "unknown"}
+}
+
+// splitTopLevelAttributes splits an object attribute body at top-level
+// newlines and commas.
+func splitTopLevelAttributes(body string) []string {
+	attributes := []string{}
+	depth := 0
+	start := 0
+	for i := 0; i < len(body); i++ {
+		switch body[i] {
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			depth--
+		case '\n', ',':
+			if depth == 0 {
+				if strings.TrimSpace(body[start:i]) != "" {
+					attributes = append(attributes, body[start:i])
+				}
+				start = i + 1
+			}
+		}
+	}
+	if strings.TrimSpace(body[start:]) != "" {
+		attributes = append(attributes, body[start:])
+	}
+	return attributes
+}
+
+// topLevelComma returns the offset of the first comma outside any bracket.
+func topLevelComma(expression string) int {
+	depth := 0
+	for i := 0; i < len(expression); i++ {
+		switch expression[i] {
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			depth--
+		case ',':
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// keywordSites returns the offsets of every standalone occurrence of the
+// keyword in code position.
+func keywordSites(content string, code []bool, keyword string) []int {
+	sites := []int{}
+	for i := 0; i+len(keyword) <= len(content); i++ {
+		if !code[i] || !strings.HasPrefix(content[i:], keyword) {
+			continue
+		}
+		if i > 0 && isHCLIdentifierRune(content[i-1]) {
+			continue
+		}
+		if i+len(keyword) < len(content) && isHCLIdentifierRune(content[i+len(keyword)]) {
+			continue
+		}
+		sites = append(sites, i)
+	}
+	return sites
+}
+
+// hclLabel reads the quoted block label after a block keyword.
+func hclLabel(content string, afterKeyword int) (string, int) {
+	cursor := skipSpace(content, afterKeyword)
+	if cursor >= len(content) || content[cursor] != '"' {
+		return "", cursor
+	}
+	end := cursor + 1
+	for end < len(content) && content[end] != '"' {
+		end++
+	}
+	if end >= len(content) {
+		return "", cursor
+	}
+	return content[cursor+1 : end], end + 1
+}
+
+// blockBody returns the span of the brace-balanced block body starting at the
+// given offset.
+func blockBody(content string, code []bool, afterLabel int) [2]int {
+	start := -1
+	for i := afterLabel; i < len(content); i++ {
+		if code[i] && content[i] == '{' {
+			start = i
+			break
+		}
+		if code[i] && content[i] == '\n' {
+			return [2]int{afterLabel, afterLabel}
+		}
+	}
+	if start < 0 {
+		return [2]int{afterLabel, afterLabel}
+	}
+	depth := 0
+	for i := start; i < len(content); i++ {
+		if !code[i] {
+			continue
+		}
+		switch content[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return [2]int{start, i + 1}
+			}
+		}
+	}
+	return [2]int{start, len(content)}
+}
+
+// typeExpressionOf extracts the type expression of a variable block body.
+func typeExpressionOf(content string, code []bool, body [2]int) string {
+	for _, site := range keywordSites(content[body[0]:body[1]], code[body[0]:body[1]], "type") {
+		absolute := body[0] + site
+		cursor := skipSpace(content, absolute+len("type"))
+		if cursor >= len(content) || content[cursor] != '=' {
+			continue
+		}
+		cursor = skipSpace(content, cursor+1)
+		start := cursor
+		depth := 0
+		for cursor < len(content) {
+			r := content[cursor]
+			switch r {
+			case '(', '[', '{':
+				depth++
+			case ')', ']', '}':
+				if depth == 0 {
+					return strings.TrimSpace(content[start:cursor])
+				}
+				depth--
+			case '\n':
+				if depth == 0 {
+					return strings.TrimSpace(content[start:cursor])
+				}
+			}
+			cursor++
+		}
+		return strings.TrimSpace(content[start:cursor])
+	}
+	return ""
+}
+
+func skipSpace(content string, from int) int {
+	for from < len(content) && (content[from] == ' ' || content[from] == '\t' || content[from] == '\n' || content[from] == '\r') {
+		from++
+	}
+	return from
+}
+
+func isHCLIdentifierRune(r byte) bool {
+	return r == '_' || r == '-' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+}
+
+func isHCLIdentifier(value string) bool {
+	if value == "" {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		if !isHCLIdentifierRune(value[i]) || value[i] == '-' {
+			return false
+		}
+	}
+	return true
 }
 
 func normalizeWhitespace(content string) string {

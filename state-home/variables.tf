@@ -38,7 +38,7 @@ variable "state_homes" {
         can(regex("^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$", home.bucket_name))
         && !can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", home.bucket_name))
         && !startswith(home.bucket_name, "goog")
-        && !contains(home.bucket_name, "google")
+        && !can(regex("google", home.bucket_name))
       )
     ])
     error_message = "every state home bucket_name must satisfy the Cloud Storage bucket naming rules: 3-63 characters of lowercase letters, digits, hyphens, underscores and dots, alphanumeric edges, never an IP form, never the goog prefix and never google or similar spellings."
@@ -68,7 +68,7 @@ variable "state_homes" {
   validation {
     condition = alltrue([
       for identity, home in var.state_homes :
-      length(split("/", home.cmek_key_name)) == 6 && element(split("/", home.cmek_key_name), 3) == home.location
+      length(split("/", home.cmek_key_name)) == 8 && element(split("/", home.cmek_key_name), 3) == home.location
     ])
     error_message = "every state home cmek_key_name must reside in the same location as its bucket; the CMEK location coupling is a hard platform rule."
   }
