@@ -33,6 +33,11 @@ variable "state_homes" {
   }
 
   validation {
+    condition     = contains(keys(var.state_homes), "foundation")
+    error_message = "state_homes must carry the entry keyed exactly \"foundation\"; this root's own backend references it."
+  }
+
+  validation {
     condition = alltrue([
       for identity, home in var.state_homes : (
         can(regex("^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$", home.bucket_name))

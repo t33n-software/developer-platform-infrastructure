@@ -390,7 +390,13 @@ func TestOpenTofuPinsAreExactAndConsistent(t *testing.T) {
 	}
 }
 
-func TestStateHomeAreaBindsTheDualFortressBirthForm(t *testing.T) {
+// TestStateHomeAreaBindsTheDualFortressForm binds the state-home area to the
+// dual fortress final form: the engine-layer encryption block, the gcs
+// backend block referencing the foundation state-home entry with the
+// state-key grammar prefix and no backend-side encryption options, the bucket
+// hardening and the operator data plane in main.tf, the instance-binding
+// validations in variables.tf and the documentation surface.
+func TestStateHomeAreaBindsTheDualFortressForm(t *testing.T) {
 	area := "state-home"
 
 	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
@@ -409,11 +415,35 @@ func TestStateHomeAreaBindsTheDualFortressBirthForm(t *testing.T) {
 			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
 		}
 	}
-	// The birth form: the root carries the encryption block but no backend
-	// block; the backend joins after the foundation bucket birth as a
-	// reviewed change, followed by the state migration.
-	if strings.Contains(versions, `backend "gcs"`) {
-		t.Fatalf("%s/versions.tf carries a backend block before the foundation bucket birth; the birth form carries none", area)
+	// The final form: exactly one backend block, of type gcs, referencing the
+	// state-home entry keyed exactly "foundation" with the state-key grammar
+	// prefix identifying exactly this root — and never a backend-side
+	// encryption option, because the client-side engine layer is the control
+	// and the bucket CMEK is the provider layer.
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	backendSites := keywordSites(rawVersions, code, "backend")
+	if len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	label, after := hclLabel(rawVersions, backendSites[0]+len("backend"))
+	if label != "gcs" {
+		t.Fatalf("%s/versions.tf carries the backend type %q, want gcs", area, label)
+	}
+	body := blockBody(rawVersions, code, after)
+	backendBody := rawVersions[body[0]:body[1]]
+	for _, required := range []string{
+		`bucket = var.state_homes["foundation"].bucket_name`,
+		`prefix = "state-home"`,
+	} {
+		if !strings.Contains(backendBody, required) {
+			t.Fatalf("%s/versions.tf backend block does not bind %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"encryption_key", "kms_encryption_key"} {
+		if strings.Contains(backendBody, forbidden) {
+			t.Fatalf("%s/versions.tf backend block carries the backend encryption option %q; the client-side engine layer is the control", area, forbidden)
+		}
 	}
 
 	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
@@ -445,6 +475,7 @@ func TestStateHomeAreaBindsTheDualFortressBirthForm(t *testing.T) {
 		`home.cmek_key_name != var.state_encryption_key`,
 		`element(split("/", home.cmek_key_name), 3) == home.location`,
 		`length(var.state_homes) > 0`,
+		`contains(keys(var.state_homes), "foundation")`,
 		`length(distinct(`,
 		`length(home.operator_members) > 0`,
 	} {
@@ -459,7 +490,7 @@ func TestStateHomeAreaBindsTheDualFortressBirthForm(t *testing.T) {
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "dual fortress", "## Birth form", "migrate-state", "foundation"} {
+	for _, required := range []string{"## Boundary", "dual fortress", "## State backend", "migrate-state", "foundation"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}

@@ -8,14 +8,21 @@ terraform {
     }
   }
 
+  # The state backend of this root: its own state lives in the foundation
+  # state bucket — the entry of the state-home map keyed exactly
+  # "foundation" — which this area provisions through the organization birth
+  # path owned by the operating model (the only local-state birth per
+  # organization, followed by the backend migration). The state-key grammar
+  # prefix identifies exactly this root and nothing else.
+  backend "gcs" {
+    bucket = var.state_homes["foundation"].bucket_name
+    prefix = "state-home"
+  }
+
   # The engine layer of the dual fortress state-encryption standard: every
   # state and plan artifact of this root is client-side encrypted with
   # AES-256-GCM through the organization key management, fail-closed
-  # enforced, before it reaches any backend — including the local birth
-  # state of this root, which is encrypted from birth. The birth form
-  # carries no backend block: the backend joins after the foundation bucket
-  # exists (a reviewed change), and the root then migrates its own state
-  # into it.
+  # enforced, before it reaches any backend.
   encryption {
     key_provider "gcp_kms" "main" {
       # Instance binding: the concrete engine key never appears in code.
