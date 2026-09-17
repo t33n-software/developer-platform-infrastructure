@@ -39,10 +39,17 @@ hand.
   proven fail-closed by the variable validations.
 - A state bucket never carries a retention policy: the state layer is the
   recovery root, not an archive.
-- The area grants exactly `roles/storage.objectAdmin` on each bucket — the
-  documented backend credential requirement — resource-sharp per boundary,
-  and never constructs members; the instance passes fully formed member
-  strings.
+- The area grants exactly two roles on each bucket, both resource-sharp per
+  boundary, and never constructs members; the instance passes fully formed
+  member strings: `roles/storage.objectAdmin` — the documented backend
+  credential requirement (the object data plane) — and the purpose-bound
+  minimal role `stateHomeBucketMetadataRead` (exactly `storage.buckets.get`
+  and `storage.buckets.getIamPolicy`, the bucket metadata read surface every
+  plan and refresh of this root needs). The minimal role is born once per
+  state-home project through the governed window channel (the documented
+  birth act of the state home, the same operational class as the CMEK
+  service-agent authorization); the broad predefined carriers of the two
+  permissions remain time-boxed window elevations, never standing rights.
 - The bucket location of every state home is coupled to its CMEK key ring
   location (a hard platform rule), proven fail-closed by the variable
   validations.

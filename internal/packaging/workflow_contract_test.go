@@ -394,8 +394,9 @@ func TestOpenTofuPinsAreExactAndConsistent(t *testing.T) {
 // dual fortress final form: the engine-layer encryption block, the gcs
 // backend block referencing the foundation state-home entry with the
 // state-key grammar prefix and no backend-side encryption options, the bucket
-// hardening and the operator data plane in main.tf, the instance-binding
-// validations in variables.tf and the documentation surface.
+// hardening, the operator data plane and the operator bucket metadata read
+// surface (the purpose-bound minimal role reference) in main.tf, the
+// instance-binding validations in variables.tf and the documentation surface.
 func TestStateHomeAreaBindsTheDualFortressForm(t *testing.T) {
 	area := "state-home"
 
@@ -456,14 +457,18 @@ func TestStateHomeAreaBindsTheDualFortressForm(t *testing.T) {
 		`encryption { default_kms_key_name = each.value.cmek_key_name }`,
 		`resource "google_storage_bucket_iam_member" "operators"`,
 		`role = "roles/storage.objectAdmin"`,
+		`resource "google_storage_bucket_iam_member" "operator_metadata_read"`,
+		`for_each = local.operator_bindings`,
+		`state_home_bucket_metadata_read_role_id = "stateHomeBucketMetadataRead"`,
+		`role = "projects/${var.state_homes[each.value.identity].project_id}/roles/${local.state_home_bucket_metadata_read_role_id}"`,
 	} {
 		if !strings.Contains(main, required) {
 			t.Fatalf("%s/main.tf does not bind the state-home form %q", area, required)
 		}
 	}
-	for _, forbidden := range []string{`lifecycle_rule`, `retention_policy`, `roles/storage.admin`} {
+	for _, forbidden := range []string{`lifecycle_rule`, `retention_policy`, `roles/storage.admin`, `roles/storage.legacyBucketOwner`, `roles/storage.legacyBucketReader`, `roles/storage.bucketViewer`} {
 		if strings.Contains(main, forbidden) {
-			t.Fatalf("%s/main.tf carries the forbidden form %q; a state bucket is the recovery root, never an archive, and the area grants exactly the object-admin role", area, forbidden)
+			t.Fatalf("%s/main.tf carries the forbidden form %q; a state bucket is the recovery root, never an archive, and the area grants exactly the object-admin role and the purpose-bound minimal metadata-read role", area, forbidden)
 		}
 	}
 
@@ -490,7 +495,7 @@ func TestStateHomeAreaBindsTheDualFortressForm(t *testing.T) {
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "dual fortress", "## State backend", "migrate-state", "foundation"} {
+	for _, required := range []string{"## Boundary", "dual fortress", "## State backend", "migrate-state", "foundation", "stateHomeBucketMetadataRead"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
