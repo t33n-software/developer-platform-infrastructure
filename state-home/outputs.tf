@@ -14,3 +14,8 @@ output "state_home_operator_iam_member_ids" {
   description = "Resource IDs of the operator object-admin bindings on the state-home buckets, keyed by state-home identity and member."
   value       = { for key, binding in google_storage_bucket_iam_member.operators : key => binding.id }
 }
+
+output "state_home_operator_metadata_read_iam_member_ids" {
+  description = "Resource IDs of the operator bucket-metadata-read bindings on the state-home buckets, keyed by state-home identity and member."
+  value       = { for key, binding in google_storage_bucket_iam_member.operator_metadata_read : key => binding.id }
+}
