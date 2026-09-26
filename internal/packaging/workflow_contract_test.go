@@ -39,7 +39,7 @@ var foundationAreaProviderPins = map[string][]string{
 	"hosting-platforms/github/rulesets":          {`source = "integrations/github"`, `version = "= 6.13.0"`},
 }
 
-// bindingManifest mirrors the tenant binding manifest (repo-bindings/v1) for
+// bindingManifest mirrors the tenant binding manifest (repo-bindings/v2) for
 // the self-consistency proofs of the canonical adoption. The home-side proof
 // against the canonical masters is owned by the verify-canonical tool; these
 // tests bind the tenant files to the manifest.
@@ -54,10 +54,10 @@ type bindingManifest struct {
 		SHA256 string `json:"sha256"`
 	} `json:"callers"`
 	Files struct {
-		Lefthook      fileBinding `json:"lefthook"`
-		Gitattributes fileBinding `json:"gitattributes"`
-		Gitignore     fileBinding `json:"gitignore"`
-		Dependabot    fileBinding `json:"dependabot"`
+		Lefthook      fileBinding      `json:"lefthook"`
+		Gitattributes fileBinding      `json:"gitattributes"`
+		Gitignore     gitignoreBinding `json:"gitignore"`
+		Dependabot    fileBinding      `json:"dependabot"`
 	} `json:"files"`
 	Codeowners struct {
 		Path         string `json:"path"`
@@ -68,6 +68,15 @@ type bindingManifest struct {
 type fileBinding struct {
 	Path   string `json:"path"`
 	SHA256 string `json:"sha256"`
+}
+
+// gitignoreBinding mirrors the schema-v2 gitignore topic: the ordered
+// fragment list (the org core always first) plus the hash of the rendered
+// governed region.
+type gitignoreBinding struct {
+	Path      string   `json:"path"`
+	Fragments []string `json:"fragments"`
+	SHA256    string   `json:"sha256"`
 }
 
 func readBindingManifest(t *testing.T) bindingManifest {
@@ -138,22 +147,46 @@ func TestCanonicalFileFamilyMatchesTheBindingManifest(t *testing.T) {
 			t.Fatalf("the canonical file %s hashes to %s, want the bound %s", topic.Path, hash, topic.SHA256)
 		}
 	}
-	// The gitignore topic is prefix-mode in the home verifier: the canonical
-	// core is a verbatim prefix and project additions live below the mark.
+	// The gitignore topic is governed-region mode in the home verifier: the
+	// rendered region — the generated header naming the bound fragments and
+	// the home pin, the fragment contents with their generated source headers
+	// and exactly one project-block mark — is a verbatim prefix of the tenant
+	// file and hashes to the bound value; project additions live below the
+	// mark.
 	gitignore := readRepositoryFile(t, manifest.Files.Gitignore.Path)
-	canonicalCore := "# Local build and test outputs.\n/.build/\n/dist/\n/coverage/\n/.cache/\n*.coverprofile\n*.test\n*.out\n*.cov\n\n# -- project additions below this line --\n"
-	if !strings.HasPrefix(gitignore, canonicalCore) {
-		t.Fatal("the gitignore does not carry the canonical core as a verbatim prefix with the project-block mark")
+	header := "# canonical: gitignore " + strings.Join(manifest.Files.Gitignore.Fragments, " + ") + " @ " + manifest.Home.SHA + " — governed region, do not edit\n"
+	if !strings.HasPrefix(gitignore, header) {
+		t.Fatal("the gitignore does not carry the generated header naming the bound fragments and the home pin")
 	}
-	for _, preserved := range []string{
+	const projectBlockMark = "# -- project additions below this line --"
+	if strings.Count(gitignore, projectBlockMark) != 1 {
+		t.Fatal("the gitignore does not carry exactly one project-block mark")
+	}
+	region := strings.SplitN(gitignore, projectBlockMark+"\n", 2)[0] + projectBlockMark + "\n"
+	regionSum := sha256.Sum256([]byte(strings.ReplaceAll(region, "\r\n", "\n")))
+	if hex.EncodeToString(regionSum[:]) != manifest.Files.Gitignore.SHA256 {
+		t.Fatal("the rendered governed region does not hash to the bound value")
+	}
+	for _, owned := range []string{
 		"**/.terraform/",
 		"*.tfstate",
 		"*.tfvars",
+	} {
+		if !strings.Contains(gitignore, owned) {
+			t.Fatalf("the gitignore governed region does not carry the canonical pattern %q", owned)
+		}
+	}
+	// The bound opentofu/lockfiles-committed fragment converges the lockfile
+	// policy on committed: no lockfile ignore pattern survives as a pattern
+	// line anywhere in the file.
+	for _, dropped := range []string{
 		"*/.terraform.lock.hcl",
 		"hosting-platforms/**/.terraform.lock.hcl",
 	} {
-		if !strings.Contains(gitignore, preserved) {
-			t.Fatalf("the gitignore does not preserve the project pattern %q below the mark", preserved)
+		for _, line := range strings.Split(gitignore, "\n") {
+			if line == dropped {
+				t.Fatalf("the gitignore still carries the lockfile ignore pattern %q; the bound policy is committed", dropped)
+			}
 		}
 	}
 
