@@ -63,3 +63,7 @@ override.tf.json
 
 # Nested local build outputs of the module areas.
 **/.build/
+
+# Local window import carriers of the foundation convergence windows
+# (the value and plan carriers are covered by the governed region).
+window.imports.tf
