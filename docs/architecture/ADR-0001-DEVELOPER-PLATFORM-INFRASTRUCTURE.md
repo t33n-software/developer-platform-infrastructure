@@ -75,6 +75,20 @@ infrastructure core.
    just-in-time form runs through the engine on this declared surface.
    Organization identifiers, member identities and every concrete value are
    instance-supplied; the core never presets one.
+7. The folders area's first governed infrastructure change (DPI-18) lands
+   the area's engine-managed surfaces: the state backend consumption (the
+   `gcs` backend block referencing the instance-bound foundation state-home
+   bucket with the state-key grammar prefix `folders`, and the client-side
+   engine-layer encryption block of the dual fortress standard), the folder
+   hierarchy surface (`google_folder`), the folder IAM member surface
+   (`google_folder_iam_member`) and the project placement surface
+   (`google_project`). The folder plane is engine-managed through these
+   surfaces: the standing interim carrier bindings of the folder-plane
+   mutation class are the engine-managed surface, and the future retirement
+   of the interim carriers into the just-in-time form runs through the
+   engine on the declared surfaces. Folder names, parents, placements,
+   project identifiers, billing references and every concrete value are
+   instance-supplied; the core never presets one.
 
 ## Consequences
 
