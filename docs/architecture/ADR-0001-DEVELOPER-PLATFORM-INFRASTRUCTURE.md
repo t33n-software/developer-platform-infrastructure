@@ -62,6 +62,19 @@ infrastructure core.
    runtime, and schema version pins for policies and evidence. Instances wire
    the concrete project IDs, regions, OIDC bindings, members and retention
    values as reviewed instance configuration.
+6. The organization area's first governed infrastructure change (DPI-17)
+   lands the area's engine-managed surfaces: the state backend consumption
+   (the `gcs` backend block referencing the instance-bound foundation
+   state-home bucket with the state-key grammar prefix `organization`, and
+   the client-side engine-layer encryption block of the dual fortress
+   standard) and the organization IAM member surface
+   (`google_organization_iam_member`). The organization plane is
+   engine-managed through this member surface: the standing interim carrier
+   binding of the organization-plane mutation class is the engine-managed
+   surface, and the future retirement of the interim carrier into the
+   just-in-time form runs through the engine on this declared surface.
+   Organization identifiers, member identities and every concrete value are
+   instance-supplied; the core never presets one.
 
 ## Consequences
 
