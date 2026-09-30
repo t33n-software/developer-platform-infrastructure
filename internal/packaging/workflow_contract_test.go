@@ -253,7 +253,7 @@ func TestOrganizationRulesetAdoptionHasNoLocalLegacyDefinitions(t *testing.T) {
 		t.Fatalf("legacy ruleset location must not exist")
 	}
 
-	conventions := readRepositoryFile(t, filepath.Join("docs", "conventions", "hosting-plattform", "github", "rule-sets", "README.md"))
+	conventions := readRepositoryFile(t, filepath.Join("docs", "conventions", "hosting-platforms", "github", "rule-sets", "README.md"))
 	for _, required := range []string{
 		"git-governance",
 		"quality-gates=linux-only",
@@ -361,7 +361,7 @@ func TestCoreContainsNoConcreteBindings(t *testing.T) {
 		".github/workflows/dependency-review.yml",
 		".github/workflows/canonical-conformance.yml",
 		"repo-bindings.json",
-		"docs/conventions/hosting-plattform/github/rule-sets/README.md",
+		"docs/conventions/hosting-platforms/github/rule-sets/README.md",
 		"docs/TRACEABILITY.md",
 		"lefthook.yml",
 		"license.values.json",
