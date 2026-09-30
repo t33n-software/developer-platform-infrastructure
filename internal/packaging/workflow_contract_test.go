@@ -535,6 +535,96 @@ func TestStateHomeAreaBindsTheDualFortressForm(t *testing.T) {
 	}
 }
 
+// TestFoldersAreaBindsTheBackendAndPlacementForm binds the folders area to
+// its engine-managed surface form: the state backend consumption blocks, the
+// folder hierarchy, the folder IAM member surface and the project placement
+// surface with the exactly-one-parent wiring, plus the fail-closed
+// instance-binding validations in variables.tf.
+func TestFoldersAreaBindsTheBackendAndPlacementForm(t *testing.T) {
+	area := "folders"
+
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
+		}
+	}
+	// The consumption form: exactly one backend block, of type gcs,
+	// referencing the instance-bound foundation state-home bucket with the
+	// state-key grammar prefix identifying exactly this root.
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	backendSites := keywordSites(rawVersions, code, "backend")
+	if len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	label, after := hclLabel(rawVersions, backendSites[0]+len("backend"))
+	if label != "gcs" {
+		t.Fatalf("%s/versions.tf carries the backend type %q, want gcs", area, label)
+	}
+	body := blockBody(rawVersions, code, after)
+	backendBody := rawVersions[body[0]:body[1]]
+	for _, required := range []string{
+		`bucket = var.state_bucket_name`,
+		`prefix = "folders"`,
+	} {
+		if !strings.Contains(backendBody, required) {
+			t.Fatalf("%s/versions.tf backend block does not bind %q", area, required)
+		}
+	}
+
+	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
+	for _, required := range []string{
+		`resource "google_folder" "hierarchy"`,
+		`for_each = var.folders`,
+		`display_name = each.value.display_name`,
+		`parent = each.value.parent`,
+		`resource "google_folder_iam_member" "plane"`,
+		`for_each = var.folder_iam_members`,
+		`folder = google_folder.hierarchy[each.value.folder].name`,
+		`role = each.value.role`,
+		`member = each.value.member`,
+		`resource "google_project" "placed"`,
+		`for_each = var.projects`,
+		`project_id = each.value.project_id`,
+		`name = each.value.name`,
+		`billing_account = each.value.billing_account`,
+		`labels = each.value.labels`,
+		`org_id = can(regex("^organizations/[0-9]+$", each.value.parent)) ? regex("^organizations/([0-9]+)$", each.value.parent)[0] : null`,
+		`folder_id = can(regex("^folders/[0-9]+$", each.value.parent)) ? regex("^folders/([0-9]+)$", each.value.parent)[0] : null`,
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not bind the folders area form %q", area, required)
+		}
+	}
+
+	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
+	for _, required := range []string{
+		`length(var.folders) > 0`,
+		`length(var.folder_iam_members) > 0`,
+		`length(var.projects) > 0`,
+		`^(organizations|folders)/[0-9]+$`,
+		`^roles/[^ ]+$`,
+		`^(user|serviceAccount|group|domain):[^ ]+$`,
+		`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`,
+		`^[0-9A-F]+-[0-9A-F]+-[0-9A-F]+$`,
+	} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
+		}
+	}
+}
+
 // TestOrganizationAreaBindsTheBackendAndIamMemberForm binds the organization
 // area to the first governed change form: the gcs backend block referencing
 // the instance-bound foundation state-home bucket with the state-key grammar
