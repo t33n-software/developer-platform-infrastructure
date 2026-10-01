@@ -57,8 +57,44 @@ run "accepts_the_valid_identity_baseline_group_set" {
   }
 
   assert {
+    condition     = google_cloud_identity_group.groups["forensics_readers"].labels["cloudidentity.googleapis.com/groups.discussion_forum"] == ""
+    error_message = "Every identity baseline group must carry the base type label with an empty value, including security groups."
+  }
+
+  assert {
     condition     = google_cloud_identity_group.groups["forensics_readers"].labels["cloudidentity.googleapis.com/groups.security"] == ""
     error_message = "The security identity baseline group must carry the security label with an empty value."
+  }
+}
+
+run "accepts_a_non_security_group_with_the_base_label_only" {
+  command = plan
+
+  plan_options {
+    refresh = false
+  }
+
+  variables {
+    identity_baseline_groups = {
+      forensics_readers = {
+        display_name         = "ops-forensics-readers"
+        group_address        = "ops-forensics-readers@example.com"
+        parent               = "customers/C0test00000"
+        description          = "The dedicated standing read-only forensics identity class of the test organization."
+        security             = false
+        initial_group_config = "EMPTY"
+      }
+    }
+  }
+
+  assert {
+    condition     = google_cloud_identity_group.groups["forensics_readers"].labels["cloudidentity.googleapis.com/groups.discussion_forum"] == ""
+    error_message = "Every identity baseline group must carry the base type label with an empty value."
+  }
+
+  assert {
+    condition     = !contains(keys(google_cloud_identity_group.groups["forensics_readers"].labels), "cloudidentity.googleapis.com/groups.security")
+    error_message = "A non-security identity baseline group must not carry the security label."
   }
 }
 

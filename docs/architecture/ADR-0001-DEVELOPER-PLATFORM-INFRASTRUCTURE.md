@@ -99,10 +99,26 @@ infrastructure core.
    zone and platform boundary derives from). The engine is the sole birth
    and mutation channel of the group objects — the declaration chain of the
    operator access classes applies to the group object itself — while the
-   membership administration stays on the organization identity plane and
-   never touches a binding. Group addresses, display names, descriptions,
-   parents, security types, initial configurations and every concrete
-   value are instance-supplied; the core never presets one.
+    membership administration stays on the organization identity plane and
+    never touches a binding. The platform's group birth mechanics govern the
+    label surface (DPI-21): the create request carries the Google Group base
+    type label (`cloudidentity.googleapis.com/groups.discussion_forum`) — the
+    default group type — while the security label
+    (`cloudidentity.googleapis.com/groups.security`) is an additional
+    immutable label of an existing group: the platform rejects its direct
+    specification in the create request with the documented 400, and once
+    added it can never be removed — the one-way ratchet is a
+    platform-enforced fortress invariant, so the access control class cannot
+    be silently downgraded. The declaration therefore composes the base type
+    label always and the security label additionally through the merge form,
+    and the governed engine birth applies them in the platform-proven
+    two-phase sequenced form (phase 1: the base-label create; phase 2: the
+    immutable security addition through the engine's update); the offline
+    verification cannot prove the platform's create semantics — the live
+    plan-gated apply is the behavioral verifier. Group addresses, display
+    names, descriptions, parents, security types, initial configurations
+    and every concrete value are instance-supplied; the core never presets
+    one.
 
 ## Consequences
 

@@ -19,6 +19,29 @@ conventions for workload identity.
 - Never contains key material, credentials, live state, plans, or variable
   binding files.
 
+## Group birth semantics
+
+The platform's group birth mechanics govern the label surface of the group
+objects: the create request carries the Google Group base type label
+(`cloudidentity.googleapis.com/groups.discussion_forum`) — the default group
+type — while the security label (`cloudidentity.googleapis.com/groups.security`)
+is an additional immutable label of an existing group. The platform rejects
+the direct specification of the security label in the create request with the
+documented 400 "security label cannot be specified directly", and once the
+label is added it can never be removed — the one-way ratchet is a
+platform-enforced fortress invariant, so the access control class cannot be
+silently downgraded. The declaration therefore composes the base type label
+always and the security label additionally through the merge form, and the
+governed engine birth applies them in the platform-proven two-phase sequenced
+form: phase 1 creates the group with the base type label, phase 2 adds the
+immutable security label through the engine's update — the same sequencing
+the `--group-type=security` form implements internally. The phase-1
+intermediate value is the documented birth mechanic, and the end state stays
+byte-exact to the instance binding. The offline verification (the variable
+fixture, the schema introspection) cannot prove the platform's create
+semantics — the live plan-gated apply is the behavioral verifier, and the
+400 class is the designed fail-closed detection.
+
 ## State backend
 
 This root's state lives in the foundation state bucket: the `gcs` backend

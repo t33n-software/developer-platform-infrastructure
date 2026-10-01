@@ -14,11 +14,16 @@ resource "google_cloud_identity_group" "groups" {
   parent               = each.value.parent
   initial_group_config = each.value.initial_group_config
 
-  labels = each.value.security ? {
-    "cloudidentity.googleapis.com/groups.security" = ""
-    } : {
-    "cloudidentity.googleapis.com/groups.discussion_forum" = ""
-  }
+  # The platform birth mechanics: the create request carries the Google Group
+  # base type label, while the security label is an additional immutable label
+  # of an existing group that the platform never accepts in the create request
+  # directly — the merge form composes the base type label always and the
+  # security label additionally, and the governed engine birth applies them in
+  # the platform-proven two-phase sequenced form.
+  labels = merge(
+    { "cloudidentity.googleapis.com/groups.discussion_forum" = "" },
+    each.value.security ? { "cloudidentity.googleapis.com/groups.security" = "" } : {}
+  )
 
   group_key {
     id = each.value.group_address
