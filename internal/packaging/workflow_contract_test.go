@@ -733,8 +733,12 @@ func TestOrganizationAreaBindsTheBackendAndIamMemberForm(t *testing.T) {
 // the engine-managed organization-level Cloud Identity group surface (the
 // engine is the sole birth and mutation channel of the group objects; the
 // membership administration stays on the organization identity plane and
-// never touches a binding), and the fail-closed instance-binding
-// validations in variables.tf.
+// never touches a binding) in the platform group birth mechanics — the base
+// type label is composed always and the security label additionally through
+// the merge form, because the platform rejects the direct security label
+// specification in the create request and the one-way ratchet makes the
+// added label immutable — and the fail-closed instance-binding validations
+// in variables.tf.
 func TestIdentityBaselineAreaBindsTheBackendAndGroupForm(t *testing.T) {
 	area := "identity-baseline"
 
@@ -790,7 +794,10 @@ func TestIdentityBaselineAreaBindsTheBackendAndGroupForm(t *testing.T) {
 		`display_name = each.value.display_name`,
 		`parent = each.value.parent`,
 		`group_key { id = each.value.group_address }`,
-		`"cloudidentity.googleapis.com/groups.security"`,
+		`labels = merge(`,
+		`{ "cloudidentity.googleapis.com/groups.discussion_forum" = "" },`,
+		`each.value.security ? { "cloudidentity.googleapis.com/groups.security" = "" } : {}`,
+		`"cloudidentity.googleapis.com/groups.discussion_forum"`,
 		`initial_group_config = each.value.initial_group_config`,
 	} {
 		if !strings.Contains(main, required) {
@@ -820,7 +827,7 @@ func TestIdentityBaselineAreaBindsTheBackendAndGroupForm(t *testing.T) {
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "## State backend", "## Verification", "identity plane", "group"} {
+	for _, required := range []string{"## Boundary", "## State backend", "## Verification", "identity plane", "group", "two-phase", "immutable"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
