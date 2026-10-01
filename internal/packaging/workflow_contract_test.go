@@ -801,6 +801,7 @@ func TestIdentityBaselineAreaBindsTheBackendAndGroupForm(t *testing.T) {
 		`each.value.security ? { "cloudidentity.googleapis.com/groups.security" = "" } : {}`,
 		`"cloudidentity.googleapis.com/groups.discussion_forum"`,
 		`initial_group_config = each.value.initial_group_config`,
+		`lifecycle { ignore_changes = [initial_group_config] }`,
 	} {
 		if !strings.Contains(main, required) {
 			t.Fatalf("%s/main.tf does not bind the identity baseline group form %q", area, required)
