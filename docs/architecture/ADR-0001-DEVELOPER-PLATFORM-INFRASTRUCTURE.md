@@ -89,6 +89,20 @@ infrastructure core.
    engine on the declared surfaces. Folder names, parents, placements,
    project identifiers, billing references and every concrete value are
    instance-supplied; the core never presets one.
+8. The identity baseline area's first governed infrastructure change (DPI-19)
+   lands the area's engine-managed surfaces: the state backend consumption
+   (the `gcs` backend block referencing the instance-bound foundation
+   state-home bucket with the state-key grammar prefix `identity-baseline`,
+   and the client-side engine-layer encryption block of the dual fortress
+   standard) and the organization-level Cloud Identity group surface
+   (`google_cloud_identity_group`: the group and principal structure every
+   zone and platform boundary derives from). The engine is the sole birth
+   and mutation channel of the group objects — the declaration chain of the
+   operator access classes applies to the group object itself — while the
+   membership administration stays on the organization identity plane and
+   never touches a binding. Group addresses, display names, descriptions,
+   parents, security types, initial configurations and every concrete
+   value are instance-supplied; the core never presets one.
 
 ## Consequences
 

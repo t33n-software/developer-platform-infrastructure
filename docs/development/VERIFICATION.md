@@ -81,7 +81,7 @@ proves the canonical bindings of this repository fail-closed. The
 `Dependency review / Dependency admission review` check blocks unreviewed
 dependency changes. CodeQL code scanning runs with all alerts blocking; the
 binding of this repository is documented in
-`docs/conventions/hosting-plattform/github/rule-sets/`.
+`docs/conventions/hosting-platforms/github/rule-sets/`.
 
 Lefthook provides the local `commit-msg` hook (governed commit-message
 validation) and the canonical pre-push validation.

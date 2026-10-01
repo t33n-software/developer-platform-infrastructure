@@ -253,7 +253,7 @@ func TestOrganizationRulesetAdoptionHasNoLocalLegacyDefinitions(t *testing.T) {
 		t.Fatalf("legacy ruleset location must not exist")
 	}
 
-	conventions := readRepositoryFile(t, filepath.Join("docs", "conventions", "hosting-plattform", "github", "rule-sets", "README.md"))
+	conventions := readRepositoryFile(t, filepath.Join("docs", "conventions", "hosting-platforms", "github", "rule-sets", "README.md"))
 	for _, required := range []string{
 		"git-governance",
 		"quality-gates=linux-only",
@@ -361,7 +361,7 @@ func TestCoreContainsNoConcreteBindings(t *testing.T) {
 		".github/workflows/dependency-review.yml",
 		".github/workflows/canonical-conformance.yml",
 		"repo-bindings.json",
-		"docs/conventions/hosting-plattform/github/rule-sets/README.md",
+		"docs/conventions/hosting-platforms/github/rule-sets/README.md",
 		"docs/TRACEABILITY.md",
 		"lefthook.yml",
 		"license.values.json",
@@ -719,6 +719,108 @@ func TestOrganizationAreaBindsTheBackendAndIamMemberForm(t *testing.T) {
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
 	for _, required := range []string{"## Boundary", "## State backend", "## Verification", "organization IAM member"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
+		}
+	}
+}
+
+// TestIdentityBaselineAreaBindsTheBackendAndGroupForm binds the identity
+// baseline area to its first governed change form: the gcs backend block
+// referencing the instance-bound foundation state-home bucket with the
+// state-key grammar prefix and no backend-side encryption options, the
+// client-side engine-layer encryption block of the dual fortress standard,
+// the engine-managed organization-level Cloud Identity group surface (the
+// engine is the sole birth and mutation channel of the group objects; the
+// membership administration stays on the organization identity plane and
+// never touches a binding), and the fail-closed instance-binding
+// validations in variables.tf.
+func TestIdentityBaselineAreaBindsTheBackendAndGroupForm(t *testing.T) {
+	area := "identity-baseline"
+
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
+		}
+	}
+	// The consumption form: exactly one backend block, of type gcs,
+	// referencing the instance-bound foundation state-home bucket with the
+	// state-key grammar prefix identifying exactly this root.
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	backendSites := keywordSites(rawVersions, code, "backend")
+	if len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	label, after := hclLabel(rawVersions, backendSites[0]+len("backend"))
+	if label != "gcs" {
+		t.Fatalf("%s/versions.tf carries the backend type %q, want gcs", area, label)
+	}
+	body := blockBody(rawVersions, code, after)
+	backendBody := rawVersions[body[0]:body[1]]
+	for _, required := range []string{
+		`bucket = var.state_bucket_name`,
+		`prefix = "identity-baseline"`,
+	} {
+		if !strings.Contains(backendBody, required) {
+			t.Fatalf("%s/versions.tf backend block does not bind %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"encryption_key", "kms_encryption_key"} {
+		if strings.Contains(backendBody, forbidden) {
+			t.Fatalf("%s/versions.tf backend block carries the backend encryption option %q; the client-side engine layer is the control", area, forbidden)
+		}
+	}
+
+	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
+	for _, required := range []string{
+		`resource "google_cloud_identity_group" "groups"`,
+		`for_each = var.identity_baseline_groups`,
+		`display_name = each.value.display_name`,
+		`parent = each.value.parent`,
+		`group_key { id = each.value.group_address }`,
+		`"cloudidentity.googleapis.com/groups.security"`,
+		`initial_group_config = each.value.initial_group_config`,
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not bind the identity baseline group form %q", area, required)
+		}
+	}
+
+	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
+	for _, required := range []string{
+		`variable "state_bucket_name"`,
+		`variable "state_encryption_key"`,
+		`variable "identity_baseline_groups"`,
+		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
+		`length(var.identity_baseline_groups) > 0`,
+		`^customers/[A-Za-z0-9]+$`,
+		`^(INITIAL_GROUP_CONFIG_UNSPECIFIED|WITH_INITIAL_OWNER|EMPTY)$`,
+		`length(group.description) > 0 && length(group.description) <= 4096`,
+	} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
+		}
+	}
+	// The organization instance supplies every concrete value; the core
+	// never presets one.
+	if strings.Contains(variables, "default") {
+		t.Fatalf("%s/variables.tf carries a preset value; the organization instance supplies every concrete value", area)
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "## State backend", "## Verification", "identity plane", "group"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
