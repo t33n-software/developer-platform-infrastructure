@@ -3,7 +3,8 @@
 `developer-platform-infrastructure` is the organization-agnostic core of the
 developer platform foundation modules: organization, folders, identity
 baseline, KMS, logging, network, policy, and the hosting-platform projection
-areas for GitHub organization custom properties and rulesets.
+areas for GitHub organization custom properties, rulesets, and repository
+settings.
 
 This repository never contains concrete organization, tenant, project,
 identity, network, secret, or registry bindings. Instances consume these
@@ -16,8 +17,9 @@ The core owns:
 - the eight canonical substrate foundation areas `organization/`,
   `folders/`, `identity-baseline/`, `kms/`, `logging/`, `network/`,
   `policy/` and `state-home/`, plus the hosting-platform projection areas
-  `hosting-platforms/github/custom-properties/` and
-  `hosting-platforms/github/rulesets/`, each a pinned OpenTofu root
+  `hosting-platforms/github/custom-properties/`,
+  `hosting-platforms/github/rulesets/` and
+  `hosting-platforms/github/repository-settings/`, each a pinned OpenTofu root
   whose resources land with the first governed infrastructure change for that
   area;
 - the source-quality gates under `cmd/` and the same-package workflow contract
@@ -33,8 +35,9 @@ The core never contains:
 
 Infrastructure as code is written in HCL and executed exclusively with
 OpenTofu. The engine and every provider are exactly pinned, provider GPG
-validation is enforced, and lock files of the foundation areas and the
-hosting-platform projection areas stay local. The OpenTofu toolchain
+validation is enforced, and every foundation area and hosting-platform
+projection area commits its `.terraform.lock.hcl` (the
+`opentofu/lockfiles-committed` fragment policy). The OpenTofu toolchain
 provisioning and gates are owned by the `opentofu` capability pack, declared
 through the `extends` list of the quality configuration seam; the pack
 contract lives in the shared-kernel registry under
@@ -76,9 +79,10 @@ disclosed vulnerabilities fail closed even without source changes.
 - `organization/`, `folders/`, `identity-baseline/`, `kms/`, `logging/`,
   `network/`, `policy/` and `state-home/` are the eight substrate
   foundation areas;
-  `hosting-platforms/github/custom-properties/` and
-  `hosting-platforms/github/rulesets/` are the hosting-platform projection
-  areas.
+  `hosting-platforms/github/custom-properties/`,
+  `hosting-platforms/github/rulesets/` and
+  `hosting-platforms/github/repository-settings/` are the hosting-platform
+  projection areas.
 - `internal/packaging/` contains the same-package workflow contract tests.
 - `docs/` contains architecture, conventions, and development
   documentation.

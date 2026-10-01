@@ -24,6 +24,7 @@ var foundationAreas = []string{
 	"state-home",
 	"hosting-platforms/github/custom-properties",
 	"hosting-platforms/github/rulesets",
+	"hosting-platforms/github/repository-settings",
 }
 
 var foundationAreaProviderPins = map[string][]string{
@@ -35,8 +36,9 @@ var foundationAreaProviderPins = map[string][]string{
 	"network":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"policy":            {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"state-home":        {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
-	"hosting-platforms/github/custom-properties": {`source = "integrations/github"`, `version = "= 6.13.0"`},
-	"hosting-platforms/github/rulesets":          {`source = "integrations/github"`, `version = "= 6.13.0"`},
+	"hosting-platforms/github/custom-properties":   {`source = "integrations/github"`, `version = "= 6.13.0"`},
+	"hosting-platforms/github/repository-settings": {`source = "integrations/github"`, `version = "= 6.13.0"`},
+	"hosting-platforms/github/rulesets":            {`source = "integrations/github"`, `version = "= 6.13.0"`},
 }
 
 // bindingManifest mirrors the tenant binding manifest (repo-bindings/v2) for
@@ -900,6 +902,101 @@ func TestRulesetsProjectionAreaIsValueFree(t *testing.T) {
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
 	for _, required := range []string{"## Boundary", "bypass", "evaluate"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
+		}
+	}
+}
+
+// repositorySettingsIgnoredAttributes is the curated non-governance
+// contract of the repository-settings projection: every optional
+// non-computed attribute of the pinned integrations/github repository
+// resource that the fleet does not govern. The two fleet-governed settings
+// flags are the only configured optional attributes; a provider upgrade
+// that adds or renames an optional attribute fails the exact-set proof
+// until the set is re-curated in a reviewed change.
+var repositorySettingsIgnoredAttributes = []string{
+	"allow_auto_merge",
+	"allow_merge_commit",
+	"allow_squash_merge",
+	"allow_update_branch",
+	"archive_on_destroy",
+	"archived",
+	"auto_init",
+	"description",
+	"gitignore_template",
+	"has_discussions",
+	"has_downloads",
+	"has_issues",
+	"has_projects",
+	"has_wiki",
+	"homepage_url",
+	"is_template",
+	"license_template",
+	"merge_commit_message",
+	"merge_commit_title",
+	"squash_merge_commit_message",
+	"squash_merge_commit_title",
+}
+
+func TestRepositorySettingsProjectionAreaIsValueFree(t *testing.T) {
+	area := filepath.Join("hosting-platforms", "github", "repository-settings")
+
+	main := readRepositoryFile(t, filepath.Join(area, "main.tf"))
+	for _, required := range []string{
+		"github_repository",
+		"for_each = var.repository_settings",
+		"each.value.allow_rebase_merge",
+		"each.value.delete_branch_on_merge",
+		"lifecycle",
+		"ignore_changes",
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not contain %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"quality-gates", "linux-only", `"full"`, "pending", "import {"} {
+		if strings.Contains(main, forbidden) {
+			t.Fatalf("%s/main.tf carries %q; the projection module is value-free and adoption-free", area, forbidden)
+		}
+	}
+
+	// The ignore set is proven as an exact set: the two governed settings
+	// flags are the only configured optional attributes, and the curated set
+	// names every other optional non-computed attribute of the pinned
+	// provider surface.
+	start := strings.Index(main, "ignore_changes = [")
+	if start < 0 {
+		t.Fatalf("%s/main.tf does not carry an ignore_changes list", area)
+	}
+	block := main[start+len("ignore_changes = ["):]
+	end := strings.Index(block, "]")
+	if end < 0 {
+		t.Fatalf("%s/main.tf ignore_changes list is not closed", area)
+	}
+	got := []string{}
+	for _, line := range strings.Split(block[:end], "\n") {
+		trimmed := strings.TrimSuffix(strings.TrimSpace(line), ",")
+		if trimmed != "" {
+			got = append(got, trimmed)
+		}
+	}
+	slices.Sort(got)
+	want := slices.Clone(repositorySettingsIgnoredAttributes)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Fatalf("%s/main.tf ignore_changes set %v does not match the curated contract %v", area, got, want)
+	}
+
+	variables := readRepositoryFile(t, filepath.Join(area, "variables.tf"))
+	for _, required := range []string{`variable "repository_settings"`} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not declare %q", area, required)
+		}
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "## Coverage contract", "## Adoption contract", "## Ready state", "contents:write"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
