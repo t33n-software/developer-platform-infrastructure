@@ -56,7 +56,8 @@ The OpenTofu gates run with the pack-bound environment
 (`OPENTOFU_ENFORCE_GPG_VALIDATION=true`, `TF_IN_AUTOMATION=true`,
 `TF_INPUT=false`). Provider downloads land in the repository-local plugin
 cache under `.build/`, which is never committed. Foundation-area and
-projection-area lock files stay local; no lock file is committed.
+projection-area lock files are committed to the repository; the
+`opentofu/lockfiles-committed` fragment binds that policy.
 
 ## Test architecture
 
