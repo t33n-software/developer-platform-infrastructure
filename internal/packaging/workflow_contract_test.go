@@ -837,6 +837,139 @@ func TestIdentityBaselineAreaBindsTheBackendAndGroupForm(t *testing.T) {
 	}
 }
 
+// TestKmsAreaBindsTheBackendAndCryptoKeyForm binds the kms area to its first
+// governed change form: the gcs backend block referencing the instance-bound
+// foundation state-home bucket with the state-key grammar prefix and no
+// backend-side encryption options, the client-side engine-layer encryption
+// block of the dual fortress standard, the engine-managed key ring surface
+// with the fail-closed prevent-destroy lifecycle (the platform never deletes
+// a key ring, so a destroy would silently unmanage the ring while the live
+// object survives), the engine-managed crypto key surface with the explicit
+// per-key purpose, version template and schedules and the provider-native
+// deletion policy pinned to PREVENT (a state-encryption key's destruction
+// renders every artifact encrypted with it irrecoverable), the engine-
+// managed crypto key IAM member surface, and the fail-closed
+// instance-binding validations in variables.tf.
+func TestKmsAreaBindsTheBackendAndCryptoKeyForm(t *testing.T) {
+	area := "kms"
+
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
+		}
+	}
+	// The consumption form: exactly one backend block, of type gcs,
+	// referencing the instance-bound foundation state-home bucket with the
+	// state-key grammar prefix identifying exactly this root — and never a
+	// backend-side encryption option, because the client-side engine layer
+	// is the control.
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	backendSites := keywordSites(rawVersions, code, "backend")
+	if len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	label, after := hclLabel(rawVersions, backendSites[0]+len("backend"))
+	if label != "gcs" {
+		t.Fatalf("%s/versions.tf carries the backend type %q, want gcs", area, label)
+	}
+	body := blockBody(rawVersions, code, after)
+	backendBody := rawVersions[body[0]:body[1]]
+	for _, required := range []string{
+		`bucket = var.state_bucket_name`,
+		`prefix = "kms"`,
+	} {
+		if !strings.Contains(backendBody, required) {
+			t.Fatalf("%s/versions.tf backend block does not bind %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"encryption_key", "kms_encryption_key"} {
+		if strings.Contains(backendBody, forbidden) {
+			t.Fatalf("%s/versions.tf backend block carries the backend encryption option %q; the client-side engine layer is the control", area, forbidden)
+		}
+	}
+
+	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
+	for _, required := range []string{
+		`resource "google_kms_key_ring" "key_rings"`,
+		`for_each = var.kms_key_rings`,
+		`name = each.key`,
+		`location = each.value.location`,
+		`project = each.value.project`,
+		`lifecycle { prevent_destroy = true }`,
+		`resource "google_kms_crypto_key" "crypto_keys"`,
+		`for_each = var.kms_crypto_keys`,
+		`name = each.value.name`,
+		`key_ring = google_kms_key_ring.key_rings[each.value.key_ring].id`,
+		`purpose = each.value.purpose`,
+		`rotation_period = each.value.rotation_period`,
+		`destroy_scheduled_duration = each.value.destroy_scheduled_duration`,
+		`labels = each.value.labels`,
+		`version_template { algorithm = each.value.version_template.algorithm protection_level = each.value.version_template.protection_level }`,
+		`deletion_policy = "PREVENT"`,
+		`resource "google_kms_crypto_key_iam_member" "members"`,
+		`for_each = var.kms_crypto_key_iam_members`,
+		`crypto_key_id = google_kms_crypto_key.crypto_keys[each.value.crypto_key].id`,
+		`role = each.value.role`,
+		`member = each.value.member`,
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not bind the kms area form %q", area, required)
+		}
+	}
+
+	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
+	for _, required := range []string{
+		`variable "state_bucket_name"`,
+		`variable "state_encryption_key"`,
+		`variable "kms_key_rings"`,
+		`variable "kms_crypto_keys"`,
+		`variable "kms_crypto_key_iam_members"`,
+		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
+		`length(var.kms_key_rings) > 0`,
+		`length(var.kms_crypto_keys) > 0`,
+		`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`,
+		`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`,
+		`key_identity == format("%s/%s", var.kms_crypto_keys[key_identity].key_ring, var.kms_crypto_keys[key_identity].name)`,
+		`contains(keys(var.kms_key_rings), key.key_ring)`,
+		`contains(keys(var.kms_crypto_keys), member.crypto_key)`,
+		`^(ENCRYPT_DECRYPT|ASYMMETRIC_SIGN|ASYMMETRIC_DECRYPT|HMAC)$`,
+		`^(GOOGLE_SYMMETRIC_ENCRYPTION|EC_SIGN_P256_SHA256|EC_SIGN_P384_SHA384)$`,
+		`^(SOFTWARE|HSM)$`,
+		`tonumber(regex("^[0-9]+", key.rotation_period)) > 86400`,
+		`^[0-9]+s$`,
+		`^(roles|organizations/[0-9]+/roles|projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/roles)/[a-zA-Z0-9._-]+$`,
+		`^(user|serviceAccount|group|domain):[^ ]+$`,
+	} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
+		}
+	}
+	// The organization instance supplies every concrete value; the core
+	// never presets one.
+	if strings.Contains(variables, "default") {
+		t.Fatalf("%s/variables.tf carries a preset value; the organization instance supplies every concrete value", area)
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "## Import semantics", "## State backend", "## Verification", "key ring", "crypto key", "Never contains key material", "PREVENT"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
+		}
+	}
+}
+
 func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	area := filepath.Join("hosting-platforms", "github", "custom-properties")
 
