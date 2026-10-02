@@ -125,6 +125,29 @@ infrastructure core.
     names, descriptions, parents, security types, initial configurations
     and every concrete value are instance-supplied; the core never presets
     one.
+ 9. The kms area's first governed infrastructure change (DPI-25) lands the
+    area's engine-managed surfaces: the state backend consumption (the
+    `gcs` backend block referencing the instance-bound foundation state-home
+    bucket with the state-key grammar prefix `kms`, and the client-side
+    engine-layer encryption block of the dual fortress standard), the
+    engine-managed key ring surface (`google_kms_key_ring`: the top-level
+    logical groupings with the fail-closed prevent-destroy lifecycle — the
+    platform never deletes a key ring, so a destroy would silently unmanage
+    the ring while the live object survives), the engine-managed crypto key
+    surface (`google_kms_crypto_key`: the purpose, the version template and
+    the rotation and destruction schedules explicit per key, with the
+    provider-native deletion policy pinned to PREVENT — the destruction of
+    a state-encryption key renders every artifact encrypted with it
+    irrecoverable, so a retirement runs through the explicit abandon path)
+    and the engine-managed crypto key IAM member surface
+    (`google_kms_crypto_key_iam_member`: the CMEK service-agent
+    authorizations of the state-home buckets and every other key-scoped
+    grant). The pinned provider carries no next-rotation-time argument: the
+    platform owns the rotation schedule, so no declared field can drift
+    against it. Key ring names, projects, locations, key names, purposes,
+    algorithms, protection levels, schedules, labels, roles, members and
+    every concrete value are instance-supplied; the core never presets
+    one.
 
 ## Consequences
 
