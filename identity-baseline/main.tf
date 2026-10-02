@@ -28,4 +28,15 @@ resource "google_cloud_identity_group" "groups" {
   group_key {
     id = each.value.group_address
   }
+
+  # The create-only platform field: the platform never returns the initial
+  # group configuration after birth, so the import state cannot carry it and
+  # a declared value would force the replacement (destroy and recreate) of
+  # the live object — proven live by the provisioning window's import plan.
+  # The birth path still applies the value; imported objects ignore it.
+  # Distinct from the description class: that surface is managed and mutable
+  # and stays bound to its exact live form.
+  lifecycle {
+    ignore_changes = [initial_group_config]
+  }
 }

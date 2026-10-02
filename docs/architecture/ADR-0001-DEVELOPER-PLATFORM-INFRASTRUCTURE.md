@@ -115,7 +115,13 @@ infrastructure core.
     two-phase sequenced form (phase 1: the base-label create; phase 2: the
     immutable security addition through the engine's update); the offline
     verification cannot prove the platform's create semantics — the live
-    plan-gated apply is the behavioral verifier. Group addresses, display
+    plan-gated apply is the behavioral verifier. The import path of an existing
+    live group object is the plan-gated declarative import block, and the
+    platform never returns the initial group configuration after birth — the
+    import state cannot carry it, so the declaration carries the lifecycle
+    ignore-changes form for exactly that field (DPI-23): the birth path still
+    applies it, imported objects ignore it, and the form is never a general
+    ignore-changes license. Group addresses, display
     names, descriptions, parents, security types, initial configurations
     and every concrete value are instance-supplied; the core never presets
     one.

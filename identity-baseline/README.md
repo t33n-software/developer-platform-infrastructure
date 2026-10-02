@@ -42,6 +42,23 @@ fixture, the schema introspection) cannot prove the platform's create
 semantics — the live plan-gated apply is the behavioral verifier, and the
 400 class is the designed fail-closed detection.
 
+The import path of an existing live group object is the plan-gated
+declarative import block: the import ID carries the `groups/{{name}}`
+resource form proven against the pinned provider documentation, and a
+destroy in an import plan is the defect proof that stops the window, never
+an authorization basis. The platform never returns the initial group
+configuration after birth, so the import state cannot carry it and a
+declared value forces the replacement of the live object; the declaration
+therefore carries the lifecycle ignore-changes form for exactly that field
+— the birth path still applies it, imported objects ignore it, and the
+form is never a general ignore-changes license (the description class
+stays a managed, mutable surface bound to its exact live form). A group
+that is no longer describable retains its email reservation: the create
+fails with the documented 409 Error(2018) while the describe answers
+non-existence, so a non-existence probe never proves email freedom — the
+describe probe binds the object state before any group create, and a 409
+is the proof of a reserved or live address, never a retry trigger.
+
 ## State backend
 
 This root's state lives in the foundation state bucket: the `gcs` backend
