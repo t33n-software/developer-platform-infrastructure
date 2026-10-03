@@ -141,13 +141,40 @@ infrastructure core.
     irrecoverable, so a retirement runs through the explicit abandon path)
     and the engine-managed crypto key IAM member surface
     (`google_kms_crypto_key_iam_member`: the CMEK service-agent
-    authorizations of the state-home buckets and every other key-scoped
+    authorizations of the state-home buckets     and every other key-scoped
     grant). The pinned provider carries no next-rotation-time argument: the
     platform owns the rotation schedule, so no declared field can drift
     against it. Key ring names, projects, locations, key names, purposes,
     algorithms, protection levels, schedules, labels, roles, members and
     every concrete value are instance-supplied; the core never presets
     one.
+10. The logging area's first governed infrastructure change (DPI-26) lands
+    the area's engine-managed surfaces: the state backend consumption (the
+    `gcs` backend block referencing the instance-bound foundation state-home
+    bucket with the state-key grammar prefix `logging`, and the client-side
+    engine-layer encryption block of the dual fortress standard) and the
+    organization-plane audit export anchor surface
+    (`google_logging_organization_sink`: the routing anchors that carry the
+    organization plane's own administrative and data-access audit trails
+    into the evidence boundary's immutable retention archive). Every anchor
+    is scoped to the organization level itself — the child inclusion stays
+    disabled, so the anchor never duplicates the zone audit exports of the
+    trust-zone stacks — and the fail-closed prevent form pins the
+    provider-native deletion policy, because an anchor's destruction stops
+    the organization plane's audit trail silently while the live evidence
+    boundary survives; a retirement runs through the explicit abandon path.
+    The writer grant of an anchor follows the organization-plane audit
+    export convention: the pinned provider documentation exposes the writer
+    identity as a computed attribute with no deterministic pre-birth form,
+    so the standing archive write capability is declared in the
+    evidence-store IAM surface of the dependency-authority infrastructure at
+    the first governed change after the provisioning read-back proves the
+    identity — never a mutation-window grant, never a workload identity —
+    and the perimeter form of the export writer is the minimal governed
+    change scoped to the one bound destination, decided by the proven writer
+    identity, never a convenience widening. Anchor names, organization
+    identifiers, destinations, filters, descriptions, exclusions and every
+    concrete value are instance-supplied; the core never presets one.
 
 ## Consequences
 

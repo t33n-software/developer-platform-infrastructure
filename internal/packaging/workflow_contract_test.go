@@ -970,6 +970,120 @@ func TestKmsAreaBindsTheBackendAndCryptoKeyForm(t *testing.T) {
 	}
 }
 
+// TestLoggingAreaBindsTheBackendAndAuditExportForm binds the logging area to
+// its first governed change form: the gcs backend block referencing the
+// instance-bound foundation state-home bucket with the state-key grammar
+// prefix and no backend-side encryption options, the client-side
+// engine-layer encryption block of the dual fortress standard, the
+// engine-managed organization-plane audit export anchor surface scoped to
+// the organization level (the child inclusion stays disabled, so the anchor
+// never duplicates the zone audit exports of the trust-zone stacks) with the
+// fail-closed prevent deletion policy (an anchor's destruction stops the
+// organization plane's audit trail silently while the live evidence
+// boundary survives), the writer-grant semantics documentation (the
+// provider's computed writer identity follows the anchor's birth — never a
+// deterministic pre-birth assumption), and the fail-closed
+// instance-binding validations in variables.tf.
+func TestLoggingAreaBindsTheBackendAndAuditExportForm(t *testing.T) {
+	area := "logging"
+
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
+		}
+	}
+	// The consumption form: exactly one backend block, of type gcs,
+	// referencing the instance-bound foundation state-home bucket with the
+	// state-key grammar prefix identifying exactly this root — and never a
+	// backend-side encryption option, because the client-side engine layer
+	// is the control.
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	backendSites := keywordSites(rawVersions, code, "backend")
+	if len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	label, after := hclLabel(rawVersions, backendSites[0]+len("backend"))
+	if label != "gcs" {
+		t.Fatalf("%s/versions.tf carries the backend type %q, want gcs", area, label)
+	}
+	body := blockBody(rawVersions, code, after)
+	backendBody := rawVersions[body[0]:body[1]]
+	for _, required := range []string{
+		`bucket = var.state_bucket_name`,
+		`prefix = "logging"`,
+	} {
+		if !strings.Contains(backendBody, required) {
+			t.Fatalf("%s/versions.tf backend block does not bind %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"encryption_key", "kms_encryption_key"} {
+		if strings.Contains(backendBody, forbidden) {
+			t.Fatalf("%s/versions.tf backend block carries the backend encryption option %q; the client-side engine layer is the control", area, forbidden)
+		}
+	}
+
+	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
+	for _, required := range []string{
+		`resource "google_logging_organization_sink" "organization_audit_export_anchors"`,
+		`for_each = var.organization_audit_export_anchors`,
+		`name = each.key`,
+		`org_id = var.organization_id`,
+		`destination = each.value.destination`,
+		`filter = each.value.filter`,
+		`description = each.value.description`,
+		`include_children = false`,
+		`deletion_policy = "PREVENT"`,
+		`dynamic "exclusions"`,
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not bind the logging area form %q", area, required)
+		}
+	}
+
+	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
+	for _, required := range []string{
+		`variable "organization_id"`,
+		`variable "state_bucket_name"`,
+		`variable "state_encryption_key"`,
+		`variable "organization_audit_export_anchors"`,
+		`can(regex("^[0-9]+$", var.organization_id))`,
+		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
+		`length(var.organization_audit_export_anchors) > 0`,
+		`^[A-Za-z0-9]([A-Za-z0-9._-]{0,98}[A-Za-z0-9])$`,
+		`^storage\\.googleapis\\.com/[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$`,
+		`length(anchor.filter) > 0`,
+		`length(anchor.description) > 0 && length(anchor.description) <= 8000`,
+	} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
+		}
+	}
+	// The organization instance supplies every concrete value; the core
+	// never presets one.
+	if strings.Contains(variables, "default") {
+		t.Fatalf("%s/variables.tf carries a preset value; the organization instance supplies every concrete value", area)
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "## Writer grant semantics", "## Import semantics", "## State backend", "## Verification", "organization level", "computed writer identity", "PREVENT", "organizations/{{organization_id}}/sinks/{{sink_id}}"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
+		}
+	}
+}
+
 func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	area := filepath.Join("hosting-platforms", "github", "custom-properties")
 
