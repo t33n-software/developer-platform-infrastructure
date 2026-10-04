@@ -101,3 +101,127 @@ variable "organization_audit_export_anchors" {
     error_message = "every exclusion name must follow the platform identifier grammar: 1-100 characters of letters, digits, underscores, hyphens and periods, beginning and ending with a letter or digit."
   }
 }
+
+variable "folder_audit_export_anchors" {
+  description = <<-EOT
+    The engine-managed folder-level audit export anchor surface, keyed by
+    anchor name: one anchor per folder grouping layer of the organization
+    hierarchy, each scoped to its own folder level (never the child
+    projects — the zone audit exports of the trust-zone stacks own the
+    project-level trails). The organization instance supplies every
+    concrete value as reviewed configuration; the core never presets one.
+  EOT
+
+  type = map(object({
+    folder_id   = string
+    destination = string
+    filter      = string
+    description = string
+    exclusions = optional(list(object({
+      name        = string
+      filter      = string
+      description = optional(string, "")
+      disabled    = optional(bool, false)
+    })), [])
+  }))
+
+  validation {
+    condition = alltrue([
+      for folder_anchor_name, folder_anchor in var.folder_audit_export_anchors : can(regex("^[A-Za-z0-9]([A-Za-z0-9._-]{0,98}[A-Za-z0-9])$", folder_anchor_name))
+    ])
+    error_message = "every anchor name must follow the platform identifier grammar: 1-100 characters of letters, digits, underscores, hyphens and periods, beginning and ending with a letter or digit."
+  }
+
+  validation {
+    condition = alltrue([
+      for folder_anchor_name, folder_anchor in var.folder_audit_export_anchors : can(regex("^[0-9]+$", folder_anchor.folder_id))
+    ])
+    error_message = "every anchor folder reference must be the numeric folder identifier; the bare numeric form feeds both the resource binding and the provider-proven import ID form folders/{{folder_id}}/sinks/{{name}}."
+  }
+
+  validation {
+    condition = alltrue([
+      for folder_anchor_name, folder_anchor in var.folder_audit_export_anchors : can(regex("^storage\\.googleapis\\.com/[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$", folder_anchor.destination))
+    ])
+    error_message = "every anchor destination must be the Cloud Storage archive form storage.googleapis.com/<bucket> naming the immutable retention archive bucket; the export target of this area is the evidence boundary's archive, never another sink class."
+  }
+
+  validation {
+    condition = alltrue([
+      for folder_anchor_name, folder_anchor in var.folder_audit_export_anchors : length(folder_anchor.filter) > 0
+    ])
+    error_message = "every anchor must carry a non-empty export filter; the organization instance binds the concrete scope of the export."
+  }
+
+  validation {
+    condition = alltrue([
+      for folder_anchor_name, folder_anchor in var.folder_audit_export_anchors : length(folder_anchor.description) > 0 && length(folder_anchor.description) <= 8000
+    ])
+    error_message = "every anchor must carry a canonical non-empty description of at most 8000 characters."
+  }
+
+  validation {
+    condition = alltrue([
+      for folder_anchor_name, folder_anchor in var.folder_audit_export_anchors : alltrue([
+        for folder_exclusion in folder_anchor.exclusions : can(regex("^[A-Za-z0-9]([A-Za-z0-9._-]{0,98}[A-Za-z0-9])$", folder_exclusion.name))
+      ])
+    ])
+    error_message = "every exclusion name must follow the platform identifier grammar: 1-100 characters of letters, digits, underscores, hyphens and periods, beginning and ending with a letter or digit."
+  }
+}
+
+variable "project_audit_export_anchor" {
+  description = <<-EOT
+    The engine-managed project-level audit export anchor of the hierarchy
+    administration project: the project-scoped sink that carries the anchor
+    project's own audit trail into the evidence boundary's immutable
+    retention archive. The organization instance supplies every concrete
+    value as reviewed configuration; the core never presets one.
+  EOT
+
+  type = object({
+    name        = string
+    project_id  = string
+    destination = string
+    filter      = string
+    description = string
+    exclusions = optional(list(object({
+      name        = string
+      filter      = string
+      description = optional(string, "")
+      disabled    = optional(bool, false)
+    })), [])
+  })
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9]([A-Za-z0-9._-]{0,98}[A-Za-z0-9])$", var.project_audit_export_anchor.name))
+    error_message = "the anchor name must follow the platform identifier grammar: 1-100 characters of letters, digits, underscores, hyphens and periods, beginning and ending with a letter or digit."
+  }
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_audit_export_anchor.project_id))
+    error_message = "the anchor project reference must be the platform project identifier grammar: 6-30 characters of lowercase letters, digits and hyphens, beginning with a letter and ending with a letter or digit."
+  }
+
+  validation {
+    condition     = can(regex("^storage\\.googleapis\\.com/[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$", var.project_audit_export_anchor.destination))
+    error_message = "the anchor destination must be the Cloud Storage archive form storage.googleapis.com/<bucket> naming the immutable retention archive bucket; the export target of this area is the evidence boundary's archive, never another sink class."
+  }
+
+  validation {
+    condition     = length(var.project_audit_export_anchor.filter) > 0
+    error_message = "the anchor must carry a non-empty export filter; the organization instance binds the concrete scope of the export."
+  }
+
+  validation {
+    condition     = length(var.project_audit_export_anchor.description) > 0 && length(var.project_audit_export_anchor.description) <= 8000
+    error_message = "the anchor must carry a canonical non-empty description of at most 8000 characters."
+  }
+
+  validation {
+    condition = alltrue([
+      for project_exclusion in var.project_audit_export_anchor.exclusions : can(regex("^[A-Za-z0-9]([A-Za-z0-9._-]{0,98}[A-Za-z0-9])$", project_exclusion.name))
+    ])
+    error_message = "every exclusion name must follow the platform identifier grammar: 1-100 characters of letters, digits, underscores, hyphens and periods, beginning and ending with a letter or digit."
+  }
+}

@@ -971,19 +971,22 @@ func TestKmsAreaBindsTheBackendAndCryptoKeyForm(t *testing.T) {
 }
 
 // TestLoggingAreaBindsTheBackendAndAuditExportForm binds the logging area to
-// its first governed change form: the gcs backend block referencing the
+// its governed change form: the gcs backend block referencing the
 // instance-bound foundation state-home bucket with the state-key grammar
 // prefix and no backend-side encryption options, the client-side
 // engine-layer encryption block of the dual fortress standard, the
-// engine-managed organization-plane audit export anchor surface scoped to
-// the organization level (the child inclusion stays disabled, so the anchor
-// never duplicates the zone audit exports of the trust-zone stacks) with the
-// fail-closed prevent deletion policy (an anchor's destruction stops the
-// organization plane's audit trail silently while the live evidence
-// boundary survives), the writer-grant semantics documentation (the
-// provider's computed writer identity follows the anchor's birth — never a
-// deterministic pre-birth assumption), and the fail-closed
-// instance-binding validations in variables.tf.
+// engine-managed anchor-set audit export surface spanning the organization
+// node (the child inclusion stays disabled, so the anchor never duplicates
+// the zone audit exports of the trust-zone stacks), the folder grouping
+// layers (one anchor per folder, the child inclusion stays disabled) and
+// the hierarchy administration project (the unique writer identity pinned
+// for the cross-project archive routing) — every anchor with the
+// fail-closed prevent deletion policy (an anchor's destruction stops its
+// level's audit trail silently while the live evidence boundary survives),
+// the writer-grant semantics documentation (the provider's computed writer
+// identity follows the anchor's birth — never a deterministic pre-birth
+// assumption), and the fail-closed instance-binding validations in
+// variables.tf.
 func TestLoggingAreaBindsTheBackendAndAuditExportForm(t *testing.T) {
 	area := "logging"
 
@@ -1046,6 +1049,12 @@ func TestLoggingAreaBindsTheBackendAndAuditExportForm(t *testing.T) {
 		`include_children = false`,
 		`deletion_policy = "PREVENT"`,
 		`dynamic "exclusions"`,
+		`resource "google_logging_folder_sink" "folder_audit_export_anchors"`,
+		`for_each = var.folder_audit_export_anchors`,
+		`folder = each.value.folder_id`,
+		`resource "google_logging_project_sink" "project_audit_export_anchor"`,
+		`project = var.project_audit_export_anchor.project_id`,
+		`unique_writer_identity = true`,
 	} {
 		if !strings.Contains(main, required) {
 			t.Fatalf("%s/main.tf does not bind the logging area form %q", area, required)
@@ -1058,7 +1067,11 @@ func TestLoggingAreaBindsTheBackendAndAuditExportForm(t *testing.T) {
 		`variable "state_bucket_name"`,
 		`variable "state_encryption_key"`,
 		`variable "organization_audit_export_anchors"`,
+		`variable "folder_audit_export_anchors"`,
+		`variable "project_audit_export_anchor"`,
 		`can(regex("^[0-9]+$", var.organization_id))`,
+		`can(regex("^[0-9]+$", folder_anchor.folder_id))`,
+		`can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_audit_export_anchor.project_id))`,
 		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
 		`length(var.organization_audit_export_anchors) > 0`,
 		`^[A-Za-z0-9]([A-Za-z0-9._-]{0,98}[A-Za-z0-9])$`,
@@ -1077,7 +1090,7 @@ func TestLoggingAreaBindsTheBackendAndAuditExportForm(t *testing.T) {
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "## Writer grant semantics", "## Import semantics", "## State backend", "## Verification", "organization level", "computed writer identity", "PREVENT", "organizations/{{organization_id}}/sinks/{{sink_id}}"} {
+	for _, required := range []string{"## Boundary", "## Writer grant semantics", "## Import semantics", "## State backend", "## Verification", "organization level", "computed writer identity", "PREVENT", "organizations/{{organization_id}}/sinks/{{sink_id}}", "folders/{{folder_id}}/sinks/{{name}}", "projects/{{project_id}}/sinks/{{name}}"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}

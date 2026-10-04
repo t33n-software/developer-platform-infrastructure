@@ -10,15 +10,20 @@ evidence boundary.
   anchor names, destinations and filters are instance-supplied values.
 - Never contains key material, credentials, live state, plans, or variable
   binding files.
-- The engine is the sole birth and mutation channel of the organization-
-  plane audit export anchors (DPI-26): the area creates them exclusively
-  through the engine-managed surface, never by hand. Every anchor is scoped
-  to the organization level itself — the child inclusion stays disabled, so
-  the anchor never duplicates the zone audit exports of the trust-zone
-  stacks — and the fail-closed prevent form pins the provider-native
-  deletion policy to PREVENT (an anchor's destruction stops the organization
-  plane's audit trail silently while the live evidence boundary survives); a
-  retirement runs through the explicit abandon path.
+- The engine is the sole birth and mutation channel of the anchor-set audit
+  export surface (DPI-26/DPI-27): the organization node's anchor, one anchor
+  per folder grouping layer and the hierarchy administration project's
+  anchor are created exclusively through the engine-managed surfaces, never
+  by hand. Every anchor is scoped to its own level — the organization
+  anchor to the organization level itself, the folder anchors to their own
+  folder level, the project anchor to its own project — the child inclusion
+  stays disabled on the organization and folder anchors, so no anchor
+  duplicates the audit exports of another level (the zone audit exports of
+  the trust-zone stacks own the project-level trails) — and the fail-closed
+  prevent form pins the provider-native deletion policy to PREVENT (an
+  anchor's destruction stops its level's audit trail silently while the live
+  evidence boundary survives); a retirement runs through the explicit
+  abandon path.
 
 ## Writer grant semantics
 
@@ -30,19 +35,23 @@ convention the standing archive write capability follows the anchor's birth
 — the evidence-store IAM surface of the dependency-authority infrastructure
 declares it at the first governed change after the provisioning read-back
 proves the identity, never as a mutation-window grant and never as a
-workload identity. The perimeter form of the export writer (an owning
-resource outside the zone perimeter writing one bound destination) is part
-of the same declared change: the proven writer identity is the deciding
-evidence, never a convenience widening.
+workload identity. The hierarchy administration project's anchor pins the
+unique writer identity in the declaration: the pinned provider documentation
+requires it for cross-project routing, so the project's own logging service
+agent is the declared export writer of this anchor class. The perimeter form
+of the export writer (an owning resource outside the zone perimeter writing
+one bound destination) is part of the same declared change: the proven
+writer identity is the deciding evidence, never a convenience widening.
 
 ## Import semantics
 
-The import path of an existing live organization-plane audit export anchor
-is the plan-gated declarative import block: the import ID carries the
-resource form proven against the pinned provider documentation —
-`organizations/{{organization_id}}/sinks/{{sink_id}}` — and a destroy in an
-import plan is the defect proof that stops the window, never an
-authorization basis.
+The import path of an existing live audit export anchor is the plan-gated
+declarative import block: the import ID carries the resource form proven
+against the pinned provider documentation — the organization anchor
+`organizations/{{organization_id}}/sinks/{{sink_id}}`, the folder anchor
+`folders/{{folder_id}}/sinks/{{name}}` and the project anchor
+`projects/{{project_id}}/sinks/{{name}}` — and a destroy in an import plan
+is the defect proof that stops the window, never an authorization basis.
 
 ## State backend
 

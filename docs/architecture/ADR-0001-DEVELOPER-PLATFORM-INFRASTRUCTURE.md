@@ -175,6 +175,23 @@ infrastructure core.
     identity, never a convenience widening. Anchor names, organization
     identifiers, destinations, filters, descriptions, exclusions and every
     concrete value are instance-supplied; the core never presets one.
+    The anchor-set completion (DPI-27) extends the surface to every
+    privileged hierarchy level: the folder grouping layers carry one
+    engine-managed anchor each (`google_logging_folder_sink`, the child
+    inclusion disabled — exclusively the folder's own entries) and the
+    hierarchy administration project carries the project-scoped anchor
+    (`google_logging_project_sink` with the unique writer identity pinned,
+    because the pinned provider documentation requires it for the
+    cross-project archive routing). The duplication-free anchor set arises
+    from the per-level scoping of the anchors, never from a deduplication
+    filter enumerating a foreign level's topology: no anchor filter carries
+    another level's resources as an exclusion set, because that coupling
+    would re-couple every level's evolution to a foreign anchor. The
+    completeness of the anchor set is the fortress form: un-routed audit
+    classes lose their evidence after the logging plane's short default
+    retention irreversibly, so a partial set is an evidence gap, never a
+    convenience trade-off — the instance verifier cross-binds every
+    declared folder grouping layer to its anchor fail-closed.
 
 ## Consequences
 
