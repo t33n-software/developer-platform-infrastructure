@@ -1097,6 +1097,118 @@ func TestLoggingAreaBindsTheBackendAndAuditExportForm(t *testing.T) {
 	}
 }
 
+// TestPolicyAreaBindsTheBackendAndOrgPolicyForm binds the policy area to its
+// first governed change form: the gcs backend block referencing the
+// instance-bound foundation state-home bucket with the state-key grammar
+// prefix and no backend-side encryption options, the client-side
+// engine-layer encryption block of the dual fortress standard, and the
+// organization-level policy surface of the destruction discipline (the
+// minimum scheduled-destruction duration value-set constraint carrying the
+// in: prefixed duration form and the disable-before-destroy boolean
+// constraint) — every policy pinning the provider-native deletion policy to
+// PREVENT (a policy's destruction stops its discipline silently while the
+// organization survives), and the fail-closed instance-binding validations
+// in variables.tf.
+func TestPolicyAreaBindsTheBackendAndOrgPolicyForm(t *testing.T) {
+	area := "policy"
+
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
+		}
+	}
+	// The consumption form: exactly one backend block, of type gcs,
+	// referencing the instance-bound foundation state-home bucket with the
+	// state-key grammar prefix identifying exactly this root — and never a
+	// backend-side encryption option, because the client-side engine layer
+	// is the control.
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	backendSites := keywordSites(rawVersions, code, "backend")
+	if len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	label, after := hclLabel(rawVersions, backendSites[0]+len("backend"))
+	if label != "gcs" {
+		t.Fatalf("%s/versions.tf carries the backend type %q, want gcs", area, label)
+	}
+	body := blockBody(rawVersions, code, after)
+	backendBody := rawVersions[body[0]:body[1]]
+	for _, required := range []string{
+		`bucket = var.state_bucket_name`,
+		`prefix = "policy"`,
+	} {
+		if !strings.Contains(backendBody, required) {
+			t.Fatalf("%s/versions.tf backend block does not bind %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"encryption_key", "kms_encryption_key"} {
+		if strings.Contains(backendBody, forbidden) {
+			t.Fatalf("%s/versions.tf backend block carries the backend encryption option %q; the client-side engine layer is the control", area, forbidden)
+		}
+	}
+
+	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
+	for _, required := range []string{
+		`resource "google_org_policy_policy" "minimum_destroy_scheduled_duration"`,
+		`name = "organizations/${var.organization_id}/policies/cloudkms.minimumDestroyScheduledDuration"`,
+		`parent = "organizations/${var.organization_id}"`,
+		`allowed_values = ["in:${var.minimum_destroy_scheduled_duration}"]`,
+		`resource "google_org_policy_policy" "disable_before_destroy"`,
+		`name = "organizations/${var.organization_id}/policies/cloudkms.disableBeforeDestroy"`,
+		`enforce = var.disable_before_destroy ? "TRUE" : "FALSE"`,
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not bind the policy area form %q", area, required)
+		}
+	}
+	// Both enforcement surfaces pin the provider-native deletion policy to
+	// the prevent form: a policy's destruction stops its discipline silently
+	// while the organization survives.
+	if strings.Count(main, `deletion_policy = "PREVENT"`) != 2 {
+		t.Fatalf("%s/main.tf must pin the deletion policy to PREVENT on both organization policies", area)
+	}
+
+	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
+	for _, required := range []string{
+		`variable "state_bucket_name"`,
+		`variable "state_encryption_key"`,
+		`variable "organization_id"`,
+		`variable "minimum_destroy_scheduled_duration"`,
+		`variable "disable_before_destroy"`,
+		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
+		`^[0-9]+$`,
+		`^(7d|15d|30d|60d|90d|120d)$`,
+	} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
+		}
+	}
+	// The organization instance supplies every concrete value; the core
+	// never presets one.
+	if strings.Contains(variables, "default") {
+		t.Fatalf("%s/variables.tf carries a preset value; the organization instance supplies every concrete value", area)
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{"## Boundary", "## Import semantics", "## State backend", "## Verification", "destruction discipline", "PREVENT", "{{parent}}/policies/{{name}}"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
+		}
+	}
+}
+
 func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	area := filepath.Join("hosting-platforms", "github", "custom-properties")
 
