@@ -192,6 +192,26 @@ infrastructure core.
     retention irreversibly, so a partial set is an evidence gap, never a
     convenience trade-off — the instance verifier cross-binds every
     declared folder grouping layer to its anchor fail-closed.
+11. The policy area's first governed infrastructure change (DPI-29) lands
+    the area's organization-level constraint anchors: the state backend
+    consumption (the `gcs` backend block with the state-key grammar prefix
+    `policy` and the client-side engine-layer encryption block of the dual
+    fortress standard) and the organization-policy surface of the
+    destruction discipline (`google_org_policy_policy` for the constraints
+    `cloudkms.minimumDestroyScheduledDuration` — the value-set form carrying
+    the `in:`-prefixed duration of the documented closed set, so the
+    platform rejects newly created keys with a shorter scheduled destruction
+    duration — and `cloudkms.disableBeforeDestroy` — the boolean form
+    requiring the disabled state before a key version can be scheduled for
+    destruction, so the logs can prove no consumer needs it anymore before
+    the irreversible step), both pinning the provider-native deletion policy
+    to PREVENT because a policy's destruction stops its discipline silently
+    while the organization survives; a retirement runs through the explicit
+    abandon path. The constraint forms are proven against the pinned
+    provider documentation and the official Cloud KMS organization-policy
+    documentation, never from memory. Organization identifiers, durations,
+    enforcement postures and every concrete value are instance-supplied;
+    the core never presets one.
 
 ## Consequences
 
