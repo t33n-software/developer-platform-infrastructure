@@ -412,7 +412,7 @@ func TestOpenTofuPinsAreExactAndConsistent(t *testing.T) {
 		if !ok {
 			t.Fatalf("no provider pin contract registered for foundation area %q", area)
 		}
-		for _, required := range append([]string{`required_version = "= 1.12.5"`}, providerPins...) {
+		for _, required := range append([]string{`required_version = "= 1.13.2"`}, providerPins...) {
 			if !strings.Contains(versions, required) {
 				t.Fatalf("%s/versions.tf does not contain exact pin %q", area, required)
 			}
