@@ -5,6 +5,35 @@
 // classes applies to the policy surface itself. The area creates policies
 // exclusively through this surface — never by hand — and carries only
 // constraint selections whose concrete values are instance-supplied.
+// The execution contract of this root is part of the declaration: the
+// organization-policy API is a quota-gated surface, so the quota carrier
+// and the API enablement precondition are declared here instead of being
+// carried as per-run folklore outside the versioned truth.
+
+# The quota carrier of every provider call of this root: the pinned
+# provider sends the user-project attribution only under the override
+# posture with a billing project, so the declarative form binds both on
+# the provider configuration. The concrete carrier project is
+# instance-supplied; the core never presets one.
+provider "google" {
+  user_project_override = true
+  billing_project       = var.quota_project
+}
+
+# The enablement precondition of the constraint surface, declared as
+# infrastructure: the organization-policy API on the quota carrier. The
+# provider-native deletion policy is pinned to PREVENT — disabling the
+# API would stop the enforcement channel of every policy of the
+# organization silently while the policies survive; a retirement runs
+# through the explicit abandon path.
+resource "google_project_service" "orgpolicy_api" {
+  project                    = var.quota_project
+  service                    = "orgpolicy.googleapis.com"
+  disable_on_destroy         = false
+  disable_dependent_services = false
+
+  deletion_policy = "PREVENT"
+}
 
 # The destruction discipline of the organization key management (the state
 # encryption reference's key layer): the platform rejects newly created keys
@@ -30,6 +59,11 @@ resource "google_org_policy_policy" "minimum_destroy_scheduled_duration" {
       }
     }
   }
+
+  # The constraint's enforcement channel is the declared organization-policy
+  # API: the birth of every policy of this root is ordered behind the
+  # service state of its enablement precondition.
+  depends_on = [google_project_service.orgpolicy_api]
 }
 
 # The disable-first procedure of the same destruction discipline: a key
@@ -48,4 +82,6 @@ resource "google_org_policy_policy" "disable_before_destroy" {
       enforce = var.disable_before_destroy ? "TRUE" : "FALSE"
     }
   }
+
+  depends_on = [google_project_service.orgpolicy_api]
 }

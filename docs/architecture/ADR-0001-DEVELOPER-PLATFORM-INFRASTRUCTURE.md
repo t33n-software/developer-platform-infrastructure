@@ -212,6 +212,25 @@ infrastructure core.
     documentation, never from memory. Organization identifiers, durations,
     enforcement postures and every concrete value are instance-supplied;
     the core never presets one.
+12. The policy area's execution contract is declared as infrastructure
+   (DPI-33): the organization-policy API is a quota-gated surface, so the
+   quota carrier binds through the provider's user-project override posture
+   with the instance-bound billing project — the declarative form of the
+   proven provider behavior, never per-run environment folklore — and the
+   API enablement itself lands as `google_project_service` with the
+   provider-native deletion policy pinned to PREVENT (disabling the API
+   would stop the enforcement channel of every organization policy
+   silently), with both policy surfaces ordered behind this declared
+   enablement precondition. The carrier is instance-supplied and chosen by
+   the hierarchy position of the root: an organization-plane root runs
+   outside the trust-zone service perimeter, so the instance binds a carrier
+   outside it — the proven cross-perimeter class. The client-side engine
+   layer of the state and plan encryption reads its key through the Google
+   client libraries outside the provider configuration, so the governed
+   execution window supplies the same carrier to that layer through the
+   per-run quota environment channel; the local application default
+   credentials keep their quota field absent, because a permanent quota
+   binding breaks cross-perimeter roots.
 
 ## Consequences
 
