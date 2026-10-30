@@ -47,3 +47,13 @@ variable "disable_before_destroy" {
   description = "Enforce constraints/cloudkms.disableBeforeDestroy on the organization: a key version must be disabled before it can be scheduled for destruction, so the logs can prove that no consumer needs it anymore before the irreversible step. The enforced posture is the instance decision; disabling it is an explicit, reviewable instance decision."
   type        = bool
 }
+
+variable "quota_project" {
+  description = "Instance-bound Google Cloud project carrying the quota attribution of every provider call of this root (the declarative user-project override) and the declared enablement of the organization-policy API. The organization instance supplies this value as reviewed configuration; the core never presets one."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.quota_project))
+    error_message = "quota_project must be a valid Google Cloud project identifier: 6-30 lowercase letters, digits and hyphens, beginning with a letter and ending alphanumeric."
+  }
+}

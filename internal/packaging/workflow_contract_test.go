@@ -1098,13 +1098,16 @@ func TestLoggingAreaBindsTheBackendAndAuditExportForm(t *testing.T) {
 }
 
 // TestPolicyAreaBindsTheBackendAndOrgPolicyForm binds the policy area to its
-// first governed change form: the gcs backend block referencing the
+// governed change form: the gcs backend block referencing the
 // instance-bound foundation state-home bucket with the state-key grammar
 // prefix and no backend-side encryption options, the client-side
-// engine-layer encryption block of the dual fortress standard, and the
-// organization-level policy surface of the destruction discipline (the
-// minimum scheduled-destruction duration value-set constraint carrying the
-// in: prefixed duration form and the disable-before-destroy boolean
+// engine-layer encryption block of the dual fortress standard, the declared
+// quota-carrier execution contract (the provider override posture bound to
+// the instance-bound carrier and the organization-policy API enablement as
+// the declared precondition of every policy surface, pinned to PREVENT),
+// and the organization-level policy surface of the destruction discipline
+// (the minimum scheduled-destruction duration value-set constraint carrying
+// the in: prefixed duration form and the disable-before-destroy boolean
 // constraint) — every policy pinning the provider-native deletion policy to
 // PREVENT (a policy's destruction stops its discipline silently while the
 // organization survives), and the fail-closed instance-binding validations
@@ -1161,6 +1164,14 @@ func TestPolicyAreaBindsTheBackendAndOrgPolicyForm(t *testing.T) {
 
 	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
 	for _, required := range []string{
+		`provider "google"`,
+		`user_project_override = true`,
+		`billing_project = var.quota_project`,
+		`resource "google_project_service" "orgpolicy_api"`,
+		`project = var.quota_project`,
+		`service = "orgpolicy.googleapis.com"`,
+		`disable_on_destroy = false`,
+		`disable_dependent_services = false`,
 		`resource "google_org_policy_policy" "minimum_destroy_scheduled_duration"`,
 		`name = "organizations/${var.organization_id}/policies/cloudkms.minimumDestroyScheduledDuration"`,
 		`parent = "organizations/${var.organization_id}"`,
@@ -1173,11 +1184,17 @@ func TestPolicyAreaBindsTheBackendAndOrgPolicyForm(t *testing.T) {
 			t.Fatalf("%s/main.tf does not bind the policy area form %q", area, required)
 		}
 	}
-	// Both enforcement surfaces pin the provider-native deletion policy to
-	// the prevent form: a policy's destruction stops its discipline silently
-	// while the organization survives.
-	if strings.Count(main, `deletion_policy = "PREVENT"`) != 2 {
-		t.Fatalf("%s/main.tf must pin the deletion policy to PREVENT on both organization policies", area)
+	// All three enforcement surfaces pin the provider-native deletion policy
+	// to the prevent form: a policy's destruction stops its discipline
+	// silently, and disabling the API stops the enforcement channel of every
+	// organization policy silently.
+	if strings.Count(main, `deletion_policy = "PREVENT"`) != 3 {
+		t.Fatalf("%s/main.tf must pin the deletion policy to PREVENT on both organization policies and on the API enablement surface", area)
+	}
+	// Every policy surface orders its birth behind the declared enablement
+	// precondition — exactly two depends_on bindings, one per policy.
+	if strings.Count(main, `depends_on = [google_project_service.orgpolicy_api]`) != 2 {
+		t.Fatalf("%s/main.tf must order both organization policies behind the declared API enablement precondition", area)
 	}
 
 	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
@@ -1187,9 +1204,11 @@ func TestPolicyAreaBindsTheBackendAndOrgPolicyForm(t *testing.T) {
 		`variable "organization_id"`,
 		`variable "minimum_destroy_scheduled_duration"`,
 		`variable "disable_before_destroy"`,
+		`variable "quota_project"`,
 		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
 		`^[0-9]+$`,
 		`^(7d|15d|30d|60d|90d|120d)$`,
+		`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`,
 	} {
 		if !strings.Contains(variables, required) {
 			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
@@ -1202,7 +1221,7 @@ func TestPolicyAreaBindsTheBackendAndOrgPolicyForm(t *testing.T) {
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "## Import semantics", "## State backend", "## Verification", "destruction discipline", "PREVENT", "{{parent}}/policies/{{name}}"} {
+	for _, required := range []string{"## Boundary", "## Quota attribution", "quota project", "## Import semantics", "## State backend", "## Verification", "destruction discipline", "PREVENT", "{{parent}}/policies/{{name}}"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}

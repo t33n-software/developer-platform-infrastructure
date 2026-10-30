@@ -19,6 +19,31 @@ encryption reference's key layer).
   its discipline silently while the organization survives; a retirement
   runs through the explicit abandon path.
 
+## Quota attribution
+
+The organization-policy API is a quota-gated surface: an engine run of this
+root attributes its API calls to a quota project. The binding is declared,
+never environmental folklore: the provider block carries the
+`user_project_override` posture with the instance-bound `billing_project`
+(the pinned provider sends the user-project attribution only in exactly this
+form), and the API enablement itself is declared as
+`google_project_service.orgpolicy_api` with the provider-native deletion
+policy pinned to PREVENT — disabling the API would stop the enforcement
+channel of every organization policy silently. Both policy surfaces order
+their birth behind this declared precondition.
+
+The quota carrier is an instance-bound value; the core never presets one.
+The carrier is chosen by the hierarchy position of the root: an
+organization-plane root runs outside the trust-zone service perimeter, so a
+carrier project inside the perimeter would break its calls through the
+perimeter rule — the instance binds a carrier outside it. The client-side
+engine layer of the state and plan encryption reads the key through the
+Google client libraries outside the provider configuration, so the governed
+execution window supplies the same carrier to that layer through the
+per-run quota environment channel of the engine process; the local
+application default credentials keep their quota field absent — a permanent
+quota binding would break cross-perimeter roots (the proven class).
+
 ## Import semantics
 
 The import path of an existing live organization policy is the plan-gated

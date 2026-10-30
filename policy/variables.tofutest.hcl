@@ -12,6 +12,7 @@ variables {
   organization_id                    = "100000000060"
   minimum_destroy_scheduled_duration = "30d"
   disable_before_destroy             = true
+  quota_project                      = "synthetic-quota-home"
 }
 
 run "accepts_the_valid_policy_set" {
@@ -45,6 +46,16 @@ run "accepts_the_valid_policy_set" {
     condition     = google_org_policy_policy.minimum_destroy_scheduled_duration.deletion_policy == "PREVENT" && google_org_policy_policy.disable_before_destroy.deletion_policy == "PREVENT"
     error_message = "Every organization policy must pin the provider-native deletion policy to the prevent form: a policy's destruction silently disables its discipline."
   }
+
+  assert {
+    condition     = google_project_service.orgpolicy_api.service == "orgpolicy.googleapis.com" && google_project_service.orgpolicy_api.project == "synthetic-quota-home"
+    error_message = "The declared enablement precondition must carry the organization-policy API on the instance-bound quota carrier."
+  }
+
+  assert {
+    condition     = google_project_service.orgpolicy_api.deletion_policy == "PREVENT" && google_project_service.orgpolicy_api.disable_on_destroy == false
+    error_message = "The API enablement surface must pin the provider-native deletion policy to the prevent form and never disable the service on destroy: disabling the API stops the enforcement channel of every organization policy silently."
+  }
 }
 
 run "rejects_a_non_numeric_organization_id" {
@@ -73,4 +84,18 @@ run "rejects_a_duration_outside_the_closed_set" {
   }
 
   expect_failures = [var.minimum_destroy_scheduled_duration]
+}
+
+run "rejects_a_malformed_quota_project" {
+  command = plan
+
+  plan_options {
+    refresh = false
+  }
+
+  variables {
+    quota_project = "Quota_Project_99"
+  }
+
+  expect_failures = [var.quota_project]
 }
