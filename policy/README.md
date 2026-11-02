@@ -53,6 +53,14 @@ against the pinned provider documentation — `{{parent}}/policies/{{name}}`
 constraint-qualified policy form) — and a destroy in an import plan is the
 defect proof that stops the window, never an authorization basis.
 
+The service import of the declared enablement precondition carries its own
+provider-proven form: `google_project_service` rejects the full resource name
+`projects/<project>/services/<service>` at import and expects
+`{project}/{service}` — the pinned provider states exactly this on the
+failing plan, and the window's import block carries the proven form. The
+drift against the provider documentation page is recorded here rather than
+silently corrected.
+
 ## State backend
 
 This root's state lives in the foundation state bucket: the `gcs` backend
