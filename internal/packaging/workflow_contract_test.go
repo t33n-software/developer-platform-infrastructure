@@ -1400,7 +1400,7 @@ func TestModuleIdentityAndQualityContract(t *testing.T) {
 	for _, required := range []string{
 		"module github.com/t33n-software/developer-platform-infrastructure",
 		"go 1.26",
-		"toolchain go1.26.6",
+		"toolchain go1.27.3",
 	} {
 		if !strings.Contains(goMod, required) {
 			t.Fatalf("go.mod does not contain %q", required)
@@ -1411,7 +1411,7 @@ func TestModuleIdentityAndQualityContract(t *testing.T) {
 	for _, required := range []string{
 		`"schemaVersion": 4`,
 		`"language": "go"`,
-		`"version": "1.26.6"`,
+		`"version": "1.27.3"`,
 		`"extends": ["opentofu@1"]`,
 		"developer-platform-infrastructure-source-quality",
 	} {
@@ -1459,7 +1459,7 @@ func TestGoToolchainAndBuildToolingContract(t *testing.T) {
 	toolsMod := readRepositoryFile(t, filepath.Join("tools", "go.mod"))
 	for _, required := range []string{
 		"module github.com/t33n-software/developer-platform-infrastructure/tools",
-		"toolchain go1.26.6",
+		"toolchain go1.27.3",
 		"github.com/evilmartians/lefthook/v2",
 		"golang.org/x/vuln/cmd/govulncheck",
 		"honnef.co/go/tools/cmd/staticcheck",

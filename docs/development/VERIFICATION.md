@@ -7,7 +7,7 @@ can re-run the same gates.
 ## Local gates
 
 Run from the repository root with the pinned Go toolchain (`go 1.26`,
-`toolchain go1.26.6`):
+`toolchain go1.27.3`):
 
 ```text
 gofmt
@@ -45,7 +45,7 @@ kernel, so the capability-pack registry resolves at the pinned stand.
 
 ## Toolchain and vulnerability re-scans
 
-The Go toolchain is pinned exactly (`toolchain go1.26.6`,
+The Go toolchain is pinned exactly (`toolchain go1.27.3`,
 `GOTOOLCHAIN=local`); CI asserts `go env GOVERSION` before any gate runs and
 no lane may download a toolchain at build time. `govulncheck` is part of the
 full source gate, and CI re-runs the full gate on a daily schedule so newly

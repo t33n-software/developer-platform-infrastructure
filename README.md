@@ -69,7 +69,7 @@ home (`ci.yml`, `codeql.yml`, `dependency-review.yml`) plus the
 repository against the home fail-closed. The canonical quality lane
 provisions the declared capability packs before the gate runs.
 
-The Go toolchain is pinned exactly (`toolchain go1.26.6`,
+The Go toolchain is pinned exactly (`toolchain go1.27.3`,
 `GOTOOLCHAIN=local`); no lane downloads a toolchain at build time. Build tools
 live in the pinned `tools/` module. CI re-runs the full gate daily so newly
 disclosed vulnerabilities fail closed even without source changes.
