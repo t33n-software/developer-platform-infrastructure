@@ -918,6 +918,7 @@ func TestKmsAreaBindsTheBackendAndCryptoKeyForm(t *testing.T) {
 		`labels = each.value.labels`,
 		`version_template { algorithm = each.value.version_template.algorithm protection_level = each.value.version_template.protection_level }`,
 		`deletion_policy = "PREVENT"`,
+		`lifecycle { ignore_changes = [destroy_scheduled_duration] }`,
 		`resource "google_kms_crypto_key_iam_member" "members"`,
 		`for_each = var.kms_crypto_key_iam_members`,
 		`crypto_key_id = google_kms_crypto_key.crypto_keys[each.value.crypto_key].id`,
