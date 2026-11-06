@@ -44,6 +44,19 @@ resource "google_kms_crypto_key" "crypto_keys" {
   # fails the destroy command closed and a retirement runs through the
   # explicit abandon path instead.
   deletion_policy = "PREVENT"
+
+  # The create-only platform field: Cloud KMS configures the scheduled
+  # destruction duration exclusively at key creation and the API carries no
+  # update path afterwards ("once specified, the duration for the key cannot
+  # be changed"), so the provider marks the attribute as replacement-forcing.
+  # A declared value therefore converges only the keys born from this
+  # declaration and would otherwise destroy and recreate every existing key —
+  # the irrecoverable loss class the deletion policy above forbids. The birth
+  # path still applies the declared value; existing keys ignore it. Distinct
+  # from the rotation period: that surface is mutable and stays managed.
+  lifecycle {
+    ignore_changes = [destroy_scheduled_duration]
+  }
 }
 
 resource "google_kms_crypto_key_iam_member" "members" {
