@@ -231,6 +231,24 @@ infrastructure core.
    per-run quota environment channel; the local application default
    credentials keep their quota field absent, because a permanent quota
    binding breaks cross-perimeter roots.
+13. The custom-properties projection area's state backend consumption is
+    declared as infrastructure (DPI-38, the DPI-13 precedent for a root born
+    without a backend): the area is a pinned OpenTofu root, so its state lives
+    in the foundation state home bucket provisioned by the `state-home` area's
+    governed birth path under the state-key grammar prefix `custom-properties`,
+    and every state and plan artifact is client-side encrypted through the
+    engine layer of the dual fortress standard before it reaches the backend —
+    the `gcp_kms` key provider with AES-256-GCM at `key_length = 32`, enforced
+    on state and plan, with the stable encrypted-metadata alias and the
+    remote-state read edge. The backend block carries no backend-side
+    encryption option: the client-side engine layer is the control. The bucket
+    name and the engine key reference are instance-bound variables with
+    fail-closed validations and no defaults; the area stays value-free —
+    property definitions are decoded by the caller from the pinned canonical
+    artifacts and repository assignments arrive from the organization instance
+    bindings, and the projection stays ordered before any class-partitioned
+    ruleset activation, because a ruleset whose selector property does not
+    exist binds zero repositories.
 
 ## Consequences
 

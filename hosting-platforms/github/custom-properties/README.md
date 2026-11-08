@@ -16,6 +16,19 @@ exactly pinned `integrations/github` provider.
 - The projection runs before any class-partitioned ruleset activation: a
   ruleset whose selector property does not exist binds zero repositories.
 
+## State backend
+
+This area is a pinned OpenTofu root: its state lives in the foundation state
+home bucket provisioned by the `state-home` area's governed birth path, under
+the state-key grammar prefix `custom-properties`. The root consumes that state
+home and never provisions state infrastructure of its own. Every state and plan
+artifact is client-side encrypted with AES-256-GCM through the organization key
+management, fail-closed enforced, before it reaches the backend — the
+engine layer of the dual fortress state-encryption standard. The bucket name
+and the engine key reference are instance-bound variables; the concrete values
+never appear in this core, and the backend block carries no backend-side
+encryption option because the client-side engine layer is the control.
+
 ## Boundary
 
 - Never carries a property definition, allowed value, description, or
