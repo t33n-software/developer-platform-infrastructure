@@ -1,7 +1,18 @@
-// Input variables of the custom-properties area: the foundation state-home
-// consumption values and the canonical property definitions and repository
-// assignments of the organization. The organization instance supplies every
-// concrete value as reviewed configuration; the core never presets one.
+// Input variables of the custom-properties area: the declared applying
+// organization target, the foundation state-home consumption values and the
+// canonical property definitions and repository assignments of the
+// organization. The organization instance supplies every concrete value as
+// reviewed configuration; the core never presets one.
+
+variable "organization" {
+  description = "Instance-bound GitHub organization login this root projects into: the target of every provider call of this root, declared as part of the execution contract (the DPI-33 precedent) so a lane identity that can reach more than one organization never silently retargets this projection. The organization instance supplies this value as reviewed configuration; the core never presets one."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$", var.organization)) && !can(regex("--", var.organization))
+    error_message = "organization must be a valid GitHub organization login: 1-39 characters of alphanumeric characters and single hyphens, beginning and ending alphanumeric, never consecutive hyphens."
+  }
+}
 
 variable "state_bucket_name" {
   description = "Instance-bound name of the foundation state-home bucket this root consumes as its state backend (provisioned by the state-home area's governed birth path). The organization instance supplies this value as reviewed configuration; the core never presets one."

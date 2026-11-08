@@ -10,6 +10,7 @@
 # value-free and carries no concrete organization, tenant or class value.
 
 variables {
+  organization         = "synthetic-organization"
   state_bucket_name    = "synthetic-foundation-state"
   state_encryption_key = "projects/synthetic-anchor/locations/europe-west3/keyRings/synthetic-ring/cryptoKeys/synthetic-engine-key"
 
@@ -119,7 +120,6 @@ run "rejects_a_google_spelled_state_bucket_name" {
 
   expect_failures = [var.state_bucket_name]
 }
-
 run "rejects_a_truncated_state_encryption_key" {
   command = plan
 
@@ -132,4 +132,32 @@ run "rejects_a_truncated_state_encryption_key" {
   }
 
   expect_failures = [var.state_encryption_key]
+}
+
+run "rejects_a_malformed_organization" {
+  command = plan
+
+  plan_options {
+    refresh = false
+  }
+
+  variables {
+    organization = "Synthetic_Org"
+  }
+
+  expect_failures = [var.organization]
+}
+
+run "rejects_an_organization_with_consecutive_hyphens" {
+  command = plan
+
+  plan_options {
+    refresh = false
+  }
+
+  variables {
+    organization = "synthetic--organization"
+  }
+
+  expect_failures = [var.organization]
 }

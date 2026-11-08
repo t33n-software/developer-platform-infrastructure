@@ -248,8 +248,25 @@ infrastructure core.
     artifacts and repository assignments arrive from the organization instance
     bindings, and the projection stays ordered before any class-partitioned
     ruleset activation, because a ruleset whose selector property does not
-    exist binds zero repositories.
-
+    exist binds zero repositories. The execution contract of this root is
+    exist binds zero repositories. The execution contract of this root is
+    declared as infrastructure (the DPI-33 precedent): the
+    `provider "github"` block binds the instance-bound `organization`
+    variable through the pinned provider's forward-compatible `owner`
+    argument (the provider documents `organization` as deprecated and removed
+    in a future major release) — the target of every provider call of this
+    root, never per-run environment folklore, so a lane identity that can
+    reach more than one organization can never silently retarget this
+    projection — with the fail-closed GitHub organization-login grammar
+    (alphanumeric and single hyphens, alphanumeric edges, never consecutive
+    hyphens) proven by one rejection run per validation clause. The execution
+    lane supplies the token only, never the `GITHUB_OWNER` or
+    `GITHUB_ORGANIZATION` environment coordinate: the pinned provider's
+    documented precedence places those above the configuration until the
+    future major release fixes the bug, and the plan gate read-back of the
+    import IDs is the target verifier. Credentials stay outside the
+    declaration: the applying lane's identity authenticates through the
+    pinned provider's token channel, never a committed secret.
 ## Consequences
 
 - Every foundation area and gate change is a governed, reviewable change

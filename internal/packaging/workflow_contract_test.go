@@ -1233,12 +1233,19 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	area := filepath.Join("hosting-platforms", "github", "custom-properties")
 
 	main := readRepositoryFile(t, filepath.Join(area, "main.tf"))
+	// The execution contract of the root is part of the declaration (the
+	// DPI-33 precedent): the provider block binds the instance-bound
+	// organization through the pinned provider's forward-compatible owner
+	// argument — the organization argument is documented deprecated and
+	// removed in a future major release.
 	for _, required := range []string{
 		"github_organization_custom_properties",
 		"github_repository_custom_property",
 		"for_each = var.definitions",
 		"values_editable_by",
 		"depends_on",
+		`provider "github"`,
+		`owner = var.organization`,
 	} {
 		if !strings.Contains(main, required) {
 			t.Fatalf("%s/main.tf does not contain %q", area, required)
@@ -1251,7 +1258,7 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	}
 
 	variables := readRepositoryFile(t, filepath.Join(area, "variables.tf"))
-	for _, required := range []string{`variable "definitions"`, `variable "assignments"`} {
+	for _, required := range []string{`variable "definitions"`, `variable "assignments"`, `variable "organization"`, `^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$`} {
 		if !strings.Contains(variables, required) {
 			t.Fatalf("%s/variables.tf does not declare %q", area, required)
 		}
@@ -1291,7 +1298,7 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "values_editable_by", "org_actors", "## State backend"} {
+	for _, required := range []string{"## Boundary", "values_editable_by", "org_actors", "## State backend", "## Execution contract"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}

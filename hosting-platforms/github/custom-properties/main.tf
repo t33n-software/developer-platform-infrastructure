@@ -2,6 +2,25 @@
 // infrastructure core. Definitions and assignments arrive exclusively through
 // the module inputs; the module never carries an organization value.
 
+// The execution contract of this root is part of the declaration (the DPI-33
+// precedent): the organization login is the target of every provider call of
+// this root, so it is declared as an instance-bound variable instead of being
+// carried as per-run environment folklore. A lane identity that can reach more
+// than one organization must never be able to silently retarget this
+// projection: the declared organization fails closed at plan time when it is
+// missing or malformed. The pinned provider documents the organization
+// argument as deprecated and removed in a future major release, so the
+// declaration binds the forward-compatible owner argument. The execution lane
+// supplies the token only — never the GITHUB_OWNER or GITHUB_ORGANIZATION
+// environment coordinate, which the pinned provider's precedence places above
+// this configuration until its documented bug is fixed — and the plan gate
+// read-back of the import IDs is the target verifier. Credentials are never
+// declared here: the applying lane's identity authenticates through the
+// pinned provider's token channel.
+provider "github" {
+  owner = var.organization
+}
+
 resource "github_organization_custom_properties" "definitions" {
   for_each = var.definitions
 
