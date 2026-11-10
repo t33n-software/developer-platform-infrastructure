@@ -231,7 +231,42 @@ infrastructure core.
    per-run quota environment channel; the local application default
    credentials keep their quota field absent, because a permanent quota
    binding breaks cross-perimeter roots.
-
+13. The custom-properties projection area's state backend consumption is
+    declared as infrastructure (DPI-38, the DPI-13 precedent for a root born
+    without a backend): the area is a pinned OpenTofu root, so its state lives
+    in the foundation state home bucket provisioned by the `state-home` area's
+    governed birth path under the state-key grammar prefix `custom-properties`,
+    and every state and plan artifact is client-side encrypted through the
+    engine layer of the dual fortress standard before it reaches the backend —
+    the `gcp_kms` key provider with AES-256-GCM at `key_length = 32`, enforced
+    on state and plan, with the stable encrypted-metadata alias and the
+    remote-state read edge. The backend block carries no backend-side
+    encryption option: the client-side engine layer is the control. The bucket
+    name and the engine key reference are instance-bound variables with
+    fail-closed validations and no defaults; the area stays value-free —
+    property definitions are decoded by the caller from the pinned canonical
+    artifacts and repository assignments arrive from the organization instance
+    bindings, and the projection stays ordered before any class-partitioned
+    ruleset activation, because a ruleset whose selector property does not
+    exist binds zero repositories. The execution contract of this root is
+    exist binds zero repositories. The execution contract of this root is
+    declared as infrastructure (the DPI-33 precedent): the
+    `provider "github"` block binds the instance-bound `organization`
+    variable through the pinned provider's forward-compatible `owner`
+    argument (the provider documents `organization` as deprecated and removed
+    in a future major release) — the target of every provider call of this
+    root, never per-run environment folklore, so a lane identity that can
+    reach more than one organization can never silently retarget this
+    projection — with the fail-closed GitHub organization-login grammar
+    (alphanumeric and single hyphens, alphanumeric edges, never consecutive
+    hyphens) proven by one rejection run per validation clause. The execution
+    lane supplies the token only, never the `GITHUB_OWNER` or
+    `GITHUB_ORGANIZATION` environment coordinate: the pinned provider's
+    documented precedence places those above the configuration until the
+    future major release fixes the bug, and the plan gate read-back of the
+    import IDs is the target verifier. Credentials stay outside the
+    declaration: the applying lane's identity authenticates through the
+    pinned provider's token channel, never a committed secret.
 ## Consequences
 
 - Every foundation area and gate change is a governed, reviewable change

@@ -1233,12 +1233,19 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	area := filepath.Join("hosting-platforms", "github", "custom-properties")
 
 	main := readRepositoryFile(t, filepath.Join(area, "main.tf"))
+	// The execution contract of the root is part of the declaration (the
+	// DPI-33 precedent): the provider block binds the instance-bound
+	// organization through the pinned provider's forward-compatible owner
+	// argument — the organization argument is documented deprecated and
+	// removed in a future major release.
 	for _, required := range []string{
 		"github_organization_custom_properties",
 		"github_repository_custom_property",
 		"for_each = var.definitions",
 		"values_editable_by",
 		"depends_on",
+		`provider "github"`,
+		`owner = var.organization`,
 	} {
 		if !strings.Contains(main, required) {
 			t.Fatalf("%s/main.tf does not contain %q", area, required)
@@ -1251,14 +1258,47 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 	}
 
 	variables := readRepositoryFile(t, filepath.Join(area, "variables.tf"))
-	for _, required := range []string{`variable "definitions"`, `variable "assignments"`} {
+	for _, required := range []string{`variable "definitions"`, `variable "assignments"`, `variable "organization"`, `^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$`} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not declare %q", area, required)
+		}
+	}
+
+	// The consumption form (the DPI-13 precedent for a root born without a
+	// backend): exactly one gcs backend block with the state-key grammar
+	// prefix identifying exactly this root, the client-side engine layer of
+	// the dual fortress standard, and the instance-bound state variables with
+	// their fail-closed validations. The area stays value-free throughout.
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`backend "gcs" { bucket = var.state_bucket_name prefix = "custom-properties" }`,
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the state consumption form %q", area, required)
+		}
+	}
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	if backendSites := keywordSites(rawVersions, code, "backend"); len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	for _, required := range []string{`variable "state_bucket_name"`, `variable "state_encryption_key"`} {
 		if !strings.Contains(variables, required) {
 			t.Fatalf("%s/variables.tf does not declare %q", area, required)
 		}
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "values_editable_by", "org_actors"} {
+	for _, required := range []string{"## Boundary", "values_editable_by", "org_actors", "## State backend", "## Execution contract"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
