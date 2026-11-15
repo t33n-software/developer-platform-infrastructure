@@ -35,15 +35,18 @@ This project (`developer-platform-infrastructure`) uses the family
 | `branch-governance: ticket working branches` | classless (`~ALL`) |
 | `branch-governance: develop shared line (quality-gates=linux-only)` | linux-only |
 | `branch-governance: main shared line (quality-gates=linux-only)` | linux-only |
-| `branch-governance: release shared lines (quality-gates=linux-only)` | linux-only |
-| `branch-governance: support shared lines (quality-gates=linux-only)` | linux-only |
+| `branch-governance: protected shared lines (quality-gates=linux-only)` | linux-only |
+| `security-scanning: shared lines (security-scanning=enabled)` | capability axis (this repository carries the CodeQL caller) |
 
 ## Management
 
 - Management level: the **organization** (`t33n-software`), never the
   individual repository level.
 - Class membership of this repository: custom property
-  `quality-gates=linux-only`.
+  `quality-gates=linux-only`; capability membership: custom property
+  `security-scanning=enabled` (the two axes are orthogonal — the capability
+  surfaces bind only through the capability ruleset, never through a class
+  file).
 - Changes to the rule sets happen exclusively in the canonical repository and
   are then re-imported at organization level (Organization Settings →
   Repository → Rulesets).
