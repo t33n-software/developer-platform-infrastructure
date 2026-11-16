@@ -1312,6 +1312,9 @@ func TestRulesetsProjectionAreaIsValueFree(t *testing.T) {
 	for _, required := range []string{
 		"github_organization_ruleset",
 		"for_each = var.rulesets",
+		`required_approving_review_count   = var.review_posture == "solo" ? 0 : pull_request.value.required_approving_review_count`,
+		`require_code_owner_review         = var.review_posture == "solo" ? false : pull_request.value.require_code_owner_review`,
+		`require_last_push_approval        = var.review_posture == "solo" ? false : pull_request.value.require_last_push_approval`,
 		"bypass_actors",
 		"conditions",
 		"ref_name",
@@ -1327,14 +1330,14 @@ func TestRulesetsProjectionAreaIsValueFree(t *testing.T) {
 	}
 
 	variables := readRepositoryFile(t, filepath.Join(area, "variables.tf"))
-	for _, required := range []string{`variable "rulesets"`} {
+	for _, required := range []string{`variable "rulesets"`, `variable "review_posture"`, `var.review_posture == "solo" || var.review_posture == "multi"`} {
 		if !strings.Contains(variables, required) {
 			t.Fatalf("%s/variables.tf does not declare %q", area, required)
 		}
 	}
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
-	for _, required := range []string{"## Boundary", "bypass", "evaluate"} {
+	for _, required := range []string{"## Boundary", "bypass", "evaluate", "review_posture"} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}

@@ -18,6 +18,13 @@ provider.
   rulesets; tag rulesets only after their bypass identity is verified).
 - `enforcement` arrives from the caller as `active` or `disabled`; `evaluate`
   is bound to the Enterprise Cloud entitlement and is never assumed.
+- The declared `review_posture` input maps to the three review-gate
+  parameters (`required_approving_review_count`, `require_code_owner_review`,
+  `require_last_push_approval`) exactly once, here: `solo` lowers them at
+  every import, `multi` projects the pinned payloads unchanged, an unknown
+  posture fails closed. The posture is an instance-declared organization
+  fact; the module never infers it from environment coordinates or member
+  counts, and it never touches any other rule value.
 
 ## Boundary
 
@@ -29,6 +36,9 @@ provider.
   variable binding files; the provider authenticates through the applying
   lane's identity.
 - Never weakens a payload: the projected ruleset is the pinned artifact, and a
-  local edit is drift that the instance reconciles back to the pin.
+  local edit is drift that the instance reconciles back to the pin. The only
+  declared projection transform is the review-posture mapping above; the
+  canonical artifacts keep the multi-member target values and the posture is
+  a reviewed instance declaration, never a silent default.
 - Creates no custom properties; property definitions are projected through the
   sibling `custom-properties` area.

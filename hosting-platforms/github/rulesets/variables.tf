@@ -1,3 +1,14 @@
+variable "review_posture" {
+  description = "Declared organization review-capacity posture the projection applies at every import: solo lowers exactly the three review-gate parameters of every payload carrying a pull_request rule (required_approving_review_count to 0, require_code_owner_review and require_last_push_approval to false), because the organization carries no review identity distinct from the author; multi projects every supplied payload value unchanged. The posture is an instance-declared organization fact — never inferred here from environment coordinates or member counts — and an absent or unknown posture fails closed. The canonical ruleset artifacts keep the multi-member target values; the projection is what reproduces the declared posture deterministically at every plan."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = var.review_posture == "solo" || var.review_posture == "multi"
+    error_message = "review_posture must be exactly solo or multi; the projection fails closed on any other value."
+  }
+}
+
 variable "rulesets" {
   description = "Organization ruleset payloads keyed by ruleset name, decoded by the caller from the pinned canonical ruleset artifacts. The module never carries a ruleset value of its own. target is branch, tag, or push; enforcement arrives from the caller as active or disabled (evaluate is bound to the Enterprise Cloud entitlement). conditions pair ref_name with exactly one repository selector for branch and tag targets; push targets carry the repository selector without ref_name. bypass_actors arrive from the organization instance bindings; actor_id is omitted for ID-less actor types such as OrganizationAdmin."
   type = map(object({

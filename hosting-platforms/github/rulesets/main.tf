@@ -72,10 +72,14 @@ resource "github_organization_ruleset" "rulesets" {
     dynamic "pull_request" {
       for_each = each.value.rules.pull_request == null ? [] : [each.value.rules.pull_request]
       content {
-        required_approving_review_count   = pull_request.value.required_approving_review_count
+        // The declared review posture maps to exactly the three review-gate
+        // parameters here, once for every payload, so no instance repeats
+        // the lowering: solo projects 0 / false / false, multi projects the
+        // pinned artifact values unchanged. No other rule value is touched.
+        required_approving_review_count   = var.review_posture == "solo" ? 0 : pull_request.value.required_approving_review_count
         dismiss_stale_reviews_on_push     = pull_request.value.dismiss_stale_reviews_on_push
-        require_code_owner_review         = pull_request.value.require_code_owner_review
-        require_last_push_approval        = pull_request.value.require_last_push_approval
+        require_code_owner_review         = var.review_posture == "solo" ? false : pull_request.value.require_code_owner_review
+        require_last_push_approval        = var.review_posture == "solo" ? false : pull_request.value.require_last_push_approval
         required_review_thread_resolution = pull_request.value.required_review_thread_resolution
         allowed_merge_methods             = pull_request.value.allowed_merge_methods
       }
