@@ -14,9 +14,10 @@ modules only through exact version pins.
 
 The core owns:
 
-- the eight canonical substrate foundation areas `organization/`,
+- the nine canonical substrate foundation areas `organization/`,
   `folders/`, `identity-baseline/`, `kms/`, `logging/`, `network/`,
-  `policy/` and `state-home/`, plus the hosting-platform projection areas
+  `policy/`, `state-home/` and `gateway-identity/`, plus the hosting-platform
+  projection areas
   `hosting-platforms/github/custom-properties/`,
   `hosting-platforms/github/rulesets/` and
   `hosting-platforms/github/repository-settings/`, each a pinned OpenTofu root
@@ -77,8 +78,8 @@ disclosed vulnerabilities fail closed even without source changes.
 ## Repository layout
 
 - `organization/`, `folders/`, `identity-baseline/`, `kms/`, `logging/`,
-  `network/`, `policy/` and `state-home/` are the eight substrate
-  foundation areas;
+  `network/`, `policy/`, `state-home/` and `gateway-identity/` are the nine
+  substrate foundation areas;
   `hosting-platforms/github/custom-properties/`,
   `hosting-platforms/github/rulesets/` and
   `hosting-platforms/github/repository-settings/` are the hosting-platform

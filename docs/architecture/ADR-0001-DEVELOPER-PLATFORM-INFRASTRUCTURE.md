@@ -18,16 +18,24 @@ this substrate and drift from the canonical architecture.
 This repository is the organization-agnostic developer platform
 infrastructure core.
 
-1. It owns the eight canonical substrate foundation areas, each a pinned
+1. It owns the nine canonical substrate foundation areas, each a pinned
    OpenTofu root: `organization/` (the organization node and its placement),
    `folders/` (the folder hierarchy projects are placed under),
    `identity-baseline/` (organization-level identity and access baseline),
    `kms/` (key rings and key references, never key material), `logging/`
    (organization-level audit log routing), `network/` (the shared network
-   foundation), `policy/` (organization policy constraints) and
+   foundation), `policy/` (organization policy constraints),
    `state-home/` (the engine-state homes of the organization: the
    foundation's own state home and one per trust zone, provisioned by the
-   foundation in the dual fortress form) — plus the
+   foundation in the dual fortress form) and
+   `gateway-identity/` (the engine-managed binding root of the hosting-native
+   CI credential chain: the estate workload identity pool, one GitHub OIDC
+   provider per lane with the repository-and-environment subject-claim
+   condition, the federated lane service accounts with their principal-set
+   federation bindings, the tenant-scoped secret containers with their
+   single-secret accessor bindings, and the hosting-platform side of the same
+   lane contract — the protected environment and the three derived lane
+   variables) — plus the
    hosting-platform projection area
    `hosting-platforms/github/custom-properties/` (the GitHub organization
    custom-property projection: value-free, with definitions decoded from the
@@ -267,6 +275,34 @@ infrastructure core.
     import IDs is the target verifier. Credentials stay outside the
     declaration: the applying lane's identity authenticates through the
     pinned provider's token channel, never a committed secret.
+14. The gateway-identity area's declaration is the engine-managed form of the
+    hosting-native CI credentials convention (DPI-40): a lane credential
+    binding is permanent infrastructure, so it enters through the declaration
+    chain — the resources declared here, the concrete names, conditions, roles
+    and labels supplied as reviewed instance values, and the live state proven
+    by the governed window's plan gate, read-backs and zero-drift proof —
+    never through hand-provisioned console or CLI state. One lane contract
+    spans the cloud identity surface and the hosting-platform surface, so this
+    is the one root declaring both pinned providers: splitting it across two
+    roots would need a cross-root state reference for values that are already
+    computable inside one root, and a half-applied binding (federated identity
+    without the lane variable contract, or the reverse) leaves a lane that
+    fails at run time instead of failing closed at plan time. The
+    credential law is structural, not procedural: the secret payload never
+    enters the declaration, the encrypted state, a plan artifact or a log
+    (only the container, its labels and its encryption form are declared), no
+    exported service-account key is ever declared — the federation is the only
+    assumption path — and every accessor binding is resource-sharp on exactly
+    one tenant-scoped secret, so a compromised lane reads only its own
+    credential. The pool, every provider, every service account and every
+    secret container pin the provider-native deletion policy to PREVENT:
+    destroying a credential-binding surface orphans the lane bindings
+    silently while the live objects survive, and the platform's soft-delete
+    makes a provider identifier unreusable for roughly thirty days, so a
+    retirement runs through the explicit abandon path. The lane variables are
+    derived from the declared cloud resources, never restated as literals,
+    which is what keeps the workflow surface and the cloud surface from
+    drifting apart.
 ## Consequences
 
 - Every foundation area and gate change is a governed, reviewable change
