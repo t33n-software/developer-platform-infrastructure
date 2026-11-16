@@ -22,6 +22,7 @@ var foundationAreas = []string{
 	"network",
 	"policy",
 	"state-home",
+	"gateway-identity",
 	"hosting-platforms/github/custom-properties",
 	"hosting-platforms/github/rulesets",
 	"hosting-platforms/github/repository-settings",
@@ -36,6 +37,11 @@ var foundationAreaProviderPins = map[string][]string{
 	"network":           {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"policy":            {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
 	"state-home":        {`source = "hashicorp/google"`, `version = "= 7.44.0"`},
+	// The gateway-identity root is the organization's credential-binding
+	// surface: one lane contract spans both the cloud identity side and the
+	// hosting-platform side, so it is the one root declaring both providers —
+	// each exactly pinned, proven against the pinned provider documentation.
+	"gateway-identity":                             {`source = "hashicorp/google"`, `version = "= 7.44.0"`, `source = "integrations/github"`, `version = "= 6.13.0"`},
 	"hosting-platforms/github/custom-properties":   {`source = "integrations/github"`, `version = "= 6.13.0"`},
 	"hosting-platforms/github/repository-settings": {`source = "integrations/github"`, `version = "= 6.13.0"`},
 	"hosting-platforms/github/rulesets":            {`source = "integrations/github"`, `version = "= 6.13.0"`},
@@ -1299,6 +1305,186 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 
 	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
 	for _, required := range []string{"## Boundary", "values_editable_by", "org_actors", "## State backend", "## Execution contract"} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("%s/README.md does not document %q", area, required)
+		}
+	}
+}
+
+// TestGatewayIdentityAreaBindsTheCredentialBindingForm binds the
+// gateway-identity area to the engine-managed credential-binding form of the
+// hosting-native CI credentials convention: the state backend consumption and
+// the client-side engine-layer encryption block of the dual fortress standard
+// (this root's state carries every federation condition and IAM binding of the
+// lanes, so the engine layer is the control), the estate pool with the
+// provider-native deletion policy pinned to PREVENT, one GitHub OIDC provider
+// per lane with the repository-organization-and-environment subject-claim
+// condition against the platform token authority, the lane service account
+// with its pool-derived repository principal-set federation binding, the
+// tenant-scoped secret container with its resource-sharp single-secret
+// accessor binding and the complete-or-absent customer-managed encryption form
+// including the platform service-agent key authorization, and the
+// hosting-platform side of the same contract (the protected environment plus
+// the three lane variables derived from the declared cloud resources, never
+// restated as literals). The guard additionally binds the forbidden forms of
+// the credential law fail-closed: no exported service-account key surface, no
+// wildcard or project-wide secret surface, no credential value in the
+// declaration, and no preset organization, project or lane value.
+func TestGatewayIdentityAreaBindsTheCredentialBindingForm(t *testing.T) {
+	area := "gateway-identity"
+
+	versions := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "versions.tf")))
+	for _, required := range []string{
+		`key_provider "gcp_kms" "main"`,
+		`kms_encryption_key = var.state_encryption_key`,
+		`key_length = 32`,
+		`encrypted_metadata_alias = "state-encryption"`,
+		`method "aes_gcm" "main"`,
+		`keys = key_provider.gcp_kms.main`,
+		`state { method = method.aes_gcm.main enforced = true`,
+		`plan { method = method.aes_gcm.main enforced = true`,
+		`remote_state_data_sources { default { method = method.aes_gcm.main`,
+	} {
+		if !strings.Contains(versions, required) {
+			t.Fatalf("%s/versions.tf does not bind the dual fortress engine-layer form %q", area, required)
+		}
+	}
+	// The consumption form: exactly one backend block, of type gcs, referencing
+	// the instance-bound foundation state-home bucket with the state-key
+	// grammar prefix identifying exactly this root — and never a backend-side
+	// encryption option, because the client-side engine layer is the control.
+	rawVersions := readRepositoryFile(t, filepath.Join(area, "versions.tf"))
+	code := hclCodeMask(rawVersions)
+	backendSites := keywordSites(rawVersions, code, "backend")
+	if len(backendSites) != 1 {
+		t.Fatalf("%s/versions.tf must carry exactly one backend block, found %d", area, len(backendSites))
+	}
+	label, after := hclLabel(rawVersions, backendSites[0]+len("backend"))
+	if label != "gcs" {
+		t.Fatalf("%s/versions.tf carries the backend type %q, want gcs", area, label)
+	}
+	body := blockBody(rawVersions, code, after)
+	backendBody := rawVersions[body[0]:body[1]]
+	for _, required := range []string{
+		`bucket = var.state_bucket_name`,
+		`prefix = "gateway-identity"`,
+	} {
+		if !strings.Contains(backendBody, required) {
+			t.Fatalf("%s/versions.tf backend block does not bind %q", area, required)
+		}
+	}
+	for _, forbidden := range []string{"encryption_key", "kms_encryption_key"} {
+		if strings.Contains(backendBody, forbidden) {
+			t.Fatalf("%s/versions.tf backend block carries the backend encryption option %q; the client-side engine layer is the control", area, forbidden)
+		}
+	}
+
+	main := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "main.tf")))
+	for _, required := range []string{
+		`provider "google"`,
+		`project = var.gateway_project`,
+		`provider "github"`,
+		`owner = var.organization`,
+		`resource "google_iam_workload_identity_pool" "gateway"`,
+		`workload_identity_pool_id = var.pool_id`,
+		`resource "google_iam_workload_identity_pool_provider" "gateway"`,
+		`for_each = var.lanes`,
+		`attribute_condition = "assertion.repository_owner == \"${var.organization}\" && assertion.repository == \"${each.value.repository}\" && assertion.environment == \"${each.value.environment}\""`,
+		`issuer_uri = "https://token.actions.githubusercontent.com"`,
+		`"attribute.repository" = "assertion.repository"`,
+		`"attribute.environment" = "assertion.environment"`,
+		`resource "google_service_account" "gateway_lane"`,
+		`account_id = each.value.service_account_id`,
+		`resource "google_service_account_iam_member" "gateway_federation"`,
+		`role = each.value.federation_role`,
+		`member = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.gateway.name}/attribute.repository/${each.value.repository}"`,
+		`resource "google_secret_manager_secret" "gateway_lane"`,
+		`secret_id = each.value.secret_id`,
+		`labels = each.value.secret_labels`,
+		`resource "google_kms_crypto_key_iam_member" "gateway_secret_cmek"`,
+		`if lane.secret_cmek_key_name != null`,
+		`resource "google_secret_manager_secret_iam_member" "gateway_lane_access"`,
+		`role = each.value.accessor_role`,
+		`member = google_service_account.gateway_lane[each.key].member`,
+		`resource "github_repository_environment" "gateway_lane"`,
+		`resource "github_actions_environment_variable" "gateway_wif_provider"`,
+		`value = google_iam_workload_identity_pool_provider.gateway[each.key].name`,
+		`resource "github_actions_environment_variable" "gateway_service_account"`,
+		`value = google_service_account.gateway_lane[each.key].email`,
+		`resource "github_actions_environment_variable" "gateway_project_id"`,
+		`value = var.gateway_project`,
+	} {
+		if !strings.Contains(main, required) {
+			t.Fatalf("%s/main.tf does not bind the credential-binding form %q", area, required)
+		}
+	}
+	// Every permanent identity, pool, provider and secret container pins the
+	// provider-native deletion policy to PREVENT: the destruction of a
+	// credential-binding surface silently orphans the lane bindings while the
+	// live objects survive, so a retirement runs through the explicit abandon
+	// path. The count is bound exactly: the pool, one form per lane class
+	// surface (provider, service account, secret) — three lane-scoped surfaces
+	// plus the pool.
+	if got := strings.Count(main, `deletion_policy = "PREVENT"`); got != 4 {
+		t.Fatalf("%s/main.tf pins the deletion policy %d times, want the pool plus the three per-lane identity and secret surfaces", area, got)
+	}
+	// The credential law's forbidden forms stay structurally absent.
+	for _, forbidden := range []string{
+		"google_service_account_key",
+		"service_account_key",
+		`secret_id = "AI_GATEWAY_`,
+		`account_id = "`,
+		`provider_id = "github-`,
+		"allUsers",
+		"allAuthenticatedUsers",
+	} {
+		if strings.Contains(main, forbidden) {
+			t.Fatalf("%s/main.tf carries the forbidden form %q; no exported key, no wildcard principal and no concrete identity value ever enters the credential-binding declaration", area, forbidden)
+		}
+	}
+
+	variables := normalizeWhitespace(readRepositoryFile(t, filepath.Join(area, "variables.tf")))
+	for _, required := range []string{
+		`variable "state_bucket_name"`,
+		`variable "state_encryption_key"`,
+		`variable "organization"`,
+		`variable "gateway_project"`,
+		`variable "pool_id"`,
+		`variable "lanes"`,
+		`^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$`,
+		`^[a-z0-9-]{4,32}$`,
+		`!startswith(var.pool_id, "gcp-")`,
+		`^[a-z]([-a-z0-9]*[a-z0-9])$`,
+		`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`,
+		`startswith(lane.repository, "${var.organization}/")`,
+		`can(regex(":", lane.environment))`,
+		`^(roles|organizations/[0-9]+/roles|projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/roles)/[a-zA-Z0-9._-]+$`,
+		`^serviceAccount:service-[0-9]+@gcp-sa-secretmanager\\.iam\\.gserviceaccount\\.com$`,
+		`length(distinct([for lane in var.lanes : lane.service_account_id])) == length(var.lanes)`,
+		`length(distinct([for lane in var.lanes : lane.secret_id])) == length(var.lanes)`,
+	} {
+		if !strings.Contains(variables, required) {
+			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
+		}
+	}
+	// The organization instance supplies every concrete value; the core never
+	// presets one.
+	if strings.Contains(variables, "default") {
+		t.Fatalf("%s/variables.tf carries a preset value; the organization instance supplies every concrete value", area)
+	}
+
+	readme := readRepositoryFile(t, filepath.Join(area, "README.md"))
+	for _, required := range []string{
+		"## Boundary",
+		"## Coverage contract",
+		"## Execution contract",
+		"## Credential boundary",
+		"## Import semantics",
+		"## State backend",
+		"## Verification",
+		"never part of this declaration",
+		"no-exported-key",
+	} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)
 		}
