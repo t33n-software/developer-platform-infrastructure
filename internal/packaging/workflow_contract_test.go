@@ -1329,7 +1329,12 @@ func TestCustomPropertiesProjectionAreaIsValueFree(t *testing.T) {
 // restated as literals). The guard additionally binds the forbidden forms of
 // the credential law fail-closed: no exported service-account key surface, no
 // wildcard or project-wide secret surface, no credential value in the
-// declaration, and no preset organization, project or lane value.
+// declaration, and no preset organization, project or lane value. The area
+// additionally binds the channel machine identity of the infrastructure-apply
+// class: the channel coordinate is declared as a validated variable, every
+// lane repository is bound to that single installation, and the README
+// documents the channel form with its bootstrap execution window and import
+// contract.
 func TestGatewayIdentityAreaBindsTheCredentialBindingForm(t *testing.T) {
 	area := "gateway-identity"
 
@@ -1413,6 +1418,9 @@ func TestGatewayIdentityAreaBindsTheCredentialBindingForm(t *testing.T) {
 		`value = google_service_account.gateway_lane[each.key].email`,
 		`resource "github_actions_environment_variable" "gateway_project_id"`,
 		`value = var.gateway_project`,
+		`resource "github_app_installation_repository" "gateway_lane_channel"`,
+		`installation_id = var.channel.installation_id`,
+		`repository = split("/", each.value.repository)[1]`,
 	} {
 		if !strings.Contains(main, required) {
 			t.Fatalf("%s/main.tf does not bind the credential-binding form %q", area, required)
@@ -1462,6 +1470,9 @@ func TestGatewayIdentityAreaBindsTheCredentialBindingForm(t *testing.T) {
 		`^serviceAccount:service-[0-9]+@gcp-sa-secretmanager\\.iam\\.gserviceaccount\\.com$`,
 		`length(distinct([for lane in var.lanes : lane.service_account_id])) == length(var.lanes)`,
 		`length(distinct([for lane in var.lanes : lane.secret_id])) == length(var.lanes)`,
+		`variable "channel"`,
+		`can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$", var.channel.app_slug))`,
+		`can(regex("^[0-9]+$", var.channel.installation_id))`,
 	} {
 		if !strings.Contains(variables, required) {
 			t.Fatalf("%s/variables.tf does not bind the fail-closed validation form %q", area, required)
@@ -1484,6 +1495,9 @@ func TestGatewayIdentityAreaBindsTheCredentialBindingForm(t *testing.T) {
 		"## Verification",
 		"never part of this declaration",
 		"no-exported-key",
+		"channel.tofutest.hcl",
+		"infrastructure-apply class",
+		"{{installation_id}}:{{repository}}",
 	} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("%s/README.md does not document %q", area, required)

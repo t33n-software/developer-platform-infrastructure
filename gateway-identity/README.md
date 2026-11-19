@@ -8,6 +8,15 @@ surface) in one atomic root.
 
 ## Coverage contract
 
+- One declared channel identity of the infrastructure-apply class
+  (`github_app_installation_repository` per lane): the machine identity that
+  converges this root — its app slug and organization installation id arrive
+  as the instance-bound `channel` coordinate, and the installation selection
+  binds exactly the lane repositories the declaration names. The app birth
+  stays a human-gated act outside the declaration (the capability-class law of
+  the hosting-platform machine-identity classification convention; the pinned
+  provider carries no app-birth resource), so the installation boundary is
+  declared truth, never console state.
 - One estate workload identity pool (`google_iam_workload_identity_pool`): the
   trust boundary every lane provider federates into, per the hosting-native CI
   credentials convention's one-pool-per-instance rule.
@@ -44,7 +53,14 @@ retarget this binding: a missing or malformed target fails closed at plan time.
 The GitHub provider binds the organization through the pinned provider's
 forward-compatible `owner` argument, and the applying lane supplies only its own
 token — never the `GITHUB_OWNER` or `GITHUB_ORGANIZATION` environment
-coordinate.
+coordinate. The window that first converges this root authenticates through the
+bootstrap form the class law permits for exactly that act (a time-boxed,
+narrowly scoped credential whose expiry is set before first use and which is
+revoked at window close): the pinned provider documents the installation
+surfaces as incompatible with GitHub App installation authentication, so the
+channel identity cannot yet converge its own birth. From the moment the
+installation exists, every later convergence run authenticates through the
+channel identity itself.
 
 ## Credential boundary
 
@@ -70,6 +86,7 @@ from the pinned provider documentation, never assumed):
 - environment variable: `{{repository}}:{{environment}}:{{variable_name}}` (a colon
   inside an environment name needs escaping outside the declaration, which the
   lane validation rejects)
+- app installation repository: `{{installation_id}}:{{repository}}`
 
 An existing live surface enters through the plan-gated declarative import block;
 a destroy inside an import plan is the defect proof that stops the window.
@@ -89,13 +106,20 @@ and leaves the backend block without any backend-side encryption option.
 
 ## Verification
 
-The behavioral proof `variables.tofutest.hcl` carries the acceptance run plus one
-rejection run per condition and per naming-rule clause; it runs through
+The behavioral proof runs in two files of this module directory:
+`variables.tofutest.hcl` carries the acceptance run plus one rejection run per
+condition and per naming-rule clause of the lane contract, and
+`channel.tofutest.hcl` carries the channel binding proof (the per-lane
+installation selection plus one rejection run per validation clause of the
+`channel` coordinate). The split follows the file-size governance of committed
+productive code surfaces; the engine discovers every `*.tofutest.hcl` of the
+module, so the division changes nothing about execution. Both run through
 `tofu test` in the governed window, because the encryption-carrying root
 resolves the engine key at initialization. The live proof of the platform's
 condition semantics is the governed window itself: the plan gate (adds and
 imports only, zero destroys), the activation read-backs of provider conditions,
-IAM bindings and secret names, and the zero-drift plan.
+IAM bindings, secret names and the installation permission surface against the
+declared ceiling, and the zero-drift plan.
 
 ## Boundary
 

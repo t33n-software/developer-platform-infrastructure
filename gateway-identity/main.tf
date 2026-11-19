@@ -5,9 +5,11 @@
 // workload identity pool, one GitHub OIDC provider per lane with the
 // repository-and-environment subject claim condition, the lane's federated
 // service account with its federation binding, the lane's tenant-scoped
-// secret container with its single-secret accessor binding, and the
-// hosting-platform side of the same contract (the protected environment and
-// the three variables the lane's workflow resolves). The declaration chain of
+// secret container with its single-secret accessor binding, the channel
+// identity of the infrastructure-apply class with its per-lane installation
+// selection, and the hosting-platform side of the same contract (the
+// protected environment and the three variables the lane's workflow
+// resolves). The declaration chain of
 // the credential convention binds this surface: the resources are declared
 // here, the concrete names, conditions, roles and labels arrive as reviewed
 // instance values, and the live state is proven by the governed window's plan
@@ -30,6 +32,25 @@ provider "google" {
 
 provider "github" {
   owner = var.organization
+}
+
+// The channel identity of this root: the machine identity of the
+// infrastructure-apply class (the capability-class law of the
+// hosting-platform machine-identity classification convention) converges
+// these bindings through its organization installation. The app birth stays
+// a human-gated act outside the declaration - the pinned provider carries no
+// app-birth resource, and the class law never delegates a root-of-trust
+// birth to a service. What is declared here is the installation boundary
+// itself: for every lane, the declared channel app is installed on exactly
+// the lane repository. The installation selection is the approval boundary
+// of the class law; the window's activation read-back proves the live
+// installation's permission surface against the declared ceiling, and a
+// drift of that surface is a governance finding, never a silent widening.
+resource "github_app_installation_repository" "gateway_lane_channel" {
+  for_each = var.lanes
+
+  installation_id = var.channel.installation_id
+  repository      = split("/", each.value.repository)[1]
 }
 
 // The estate's single workload identity pool: the trust boundary every lane
