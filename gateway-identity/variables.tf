@@ -54,6 +54,25 @@ variable "pool_id" {
   }
 }
 
+variable "channel" {
+  description = "Instance-bound identity of the gateway channel: the machine identity of the infrastructure-apply class that converges this root (the capability-class law of the hosting-platform machine-identity classification convention). The birth of the app itself stays a human-gated act outside the declaration - the pinned provider carries no app-birth resource and the class law never delegates a root-of-trust birth; what is declared here is the channel identity and its organization installation coordinate, so the plan gate proves the binding instead of a console state. The organization instance supplies both values as reviewed configuration; the core never presets one."
+  type = object({
+    app_slug        = string
+    installation_id = string
+  })
+  nullable = false
+
+  validation {
+    condition     = can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$", var.channel.app_slug))
+    error_message = "channel.app_slug must be the URL-friendly GitHub App slug of the declared channel identity: lowercase letters, digits and single hyphens, beginning and ending alphanumeric."
+  }
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.channel.installation_id))
+    error_message = "channel.installation_id must be the numeric GitHub App installation identifier of the organization installation: an empty or non-numeric value names no installation and would silently bind nothing."
+  }
+}
+
 variable "lanes" {
   description = "The gateway lane bindings of the organization: one entry per consuming repository lane, keyed by the lane identity. Every entry carries the GitHub repository and protected environment of the lane, the provider and service-account identifiers of its federation, the tenant-scoped secret it may read, the two instance-bound role references (the federation role on the service account and the accessor role on its secret), the variable-name contract the lane's workflow reads, and the optional environment-projection values. A lane whose secret carries a customer-managed encryption key additionally carries the key-authorizer role and the platform's secret-manager service-agent member for the credential host project. Every concrete value arrives from the organization instance bindings; the module never carries one."
   type = map(object({

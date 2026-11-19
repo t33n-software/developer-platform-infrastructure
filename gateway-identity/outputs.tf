@@ -3,6 +3,11 @@
 // carried as an output so the instance verifier can cross-bind the lane
 // contract against the declared environment surface without re-deriving it.
 
+output "channel_installation_bindings" {
+  description = "Installation selections of the declared channel identity, keyed by lane identity — the approval boundary of the infrastructure-apply class: which repository the channel app is installed on. The permission surface of the live installation is proven by the governed window's activation read-back against the declared ceiling."
+  value       = { for lane_key, binding in github_app_installation_repository.gateway_lane_channel : lane_key => binding.repository }
+}
+
 output "pool_name" {
   description = "Resource name of the estate's workload identity pool — the trust boundary every lane provider federates into."
   value       = google_iam_workload_identity_pool.gateway.name
